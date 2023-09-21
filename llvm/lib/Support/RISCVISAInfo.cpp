@@ -88,6 +88,11 @@ static const RISCVSupportedExtension SupportedExtensions[] = {
     {"xtheadsync", {1, 0}},
     {"xtheadvdot", {1, 0}},
     {"xventanacondops", {1, 0}},
+    {"xxlcz", {1, 0}},
+    {"xxldsp", {1, 0}},
+    {"xxldspn1x", {1, 0}},
+    {"xxldspn2x", {1, 0}},
+    {"xxldspn3x", {1, 0}},
 
     {"za128rs", {1, 0}},
     {"za64rs", {1, 0}},
@@ -1007,6 +1012,9 @@ static const char *ImpliedExtsXSfvfnrclipxfqf[] = {"zve32f"};
 static const char *ImpliedExtsXSfvfwmaccqqq[] = {"zvfbfmin"};
 static const char *ImpliedExtsXSfvqmaccdod[] = {"zve32x"};
 static const char *ImpliedExtsXSfvqmaccqoq[] = {"zve32x"};
+static const char *ImpliedExtsXxldspn1x[] = {"xxldsp", "xxldspn1x"};
+static const char *ImpliedExtsXxldspn2x[] = {"xxldsp", "xxldspn1x", "xxldspn2x"};
+static const char *ImpliedExtsXxldspn3x[] = {"xxldsp", "xxldspn1x", "xxldspn2x", "xxldspn3x"};
 static const char *ImpliedExtsZacas[] = {"a"};
 static const char *ImpliedExtsZcb[] = {"zca"};
 static const char *ImpliedExtsZcd[] = {"d", "zca"};
@@ -1081,6 +1089,9 @@ static constexpr ImpliedExtsEntry ImpliedExts[] = {
     {{"xsfvqmaccdod"}, {ImpliedExtsXSfvqmaccdod}},
     {{"xsfvqmaccqoq"}, {ImpliedExtsXSfvqmaccqoq}},
     {{"xtheadvdot"}, {ImpliedExtsXTHeadVdot}},
+    {{"xxldspn1x"}, {ImpliedExtsXxldspn1x}},
+    {{"xxldspn2x"}, {ImpliedExtsXxldspn2x}},
+    {{"xxldspn3x"}, {ImpliedExtsXxldspn3x}},
     {{"zacas"}, {ImpliedExtsZacas}},
     {{"zcb"}, {ImpliedExtsZcb}},
     {{"zcd"}, {ImpliedExtsZcd}},

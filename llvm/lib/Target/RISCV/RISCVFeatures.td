@@ -977,6 +977,47 @@ def HasVendorXCVbi
       AssemblerPredicate<(all_of FeatureVendorXCVbi),
                          "'XCVbi' (CORE-V Immediate Branching)">;
 
+def FeatureVendorXxlcz
+    : SubtargetFeature<"xxlcz", "HasVendorXxlcz", "true",
+                       "'xxlcz' (Nuclei custom code size reduce Instructions)">;
+def HasVendorXxlcz : Predicate<"Subtarget->hasVendorXxlcz()">,
+                           AssemblerPredicate<(all_of FeatureVendorXxlcz),
+                           "'xxlcz' (Nuclei custom code size reduce Instructions)">;
+
+def FeatureVendorXxldsp
+    : SubtargetFeature<"xxldsp", "HasVendorXxldsp", "true",
+                       "'xxldsp' (Packed-SIMD Instructions)">;
+def HasVendorXxldsp : Predicate<"Subtarget->hasVendorXxldsp()">,
+                           AssemblerPredicate<(all_of FeatureVendorXxldsp),
+                           "'xxldsp' (Packed-SIMD Instructions)">;
+
+def FeatureVendorXxldspn1x
+    : SubtargetFeature<"xxldspn1x", "HasVendorXxldspn1x", "true",
+                       "'xxldspn1x' (Nuclei Custom DSP N1 Instructions)",
+                       [FeatureVendorXxldsp]>;
+def HasVendorXxldspn1x : Predicate<"Subtarget->hasVendorXxldspn1x()">,
+                           AssemblerPredicate<(all_of FeatureVendorXxldspn1x),
+                           "'xxldspn1x' (Nuclei Custom DSP N1 Instructions)">;
+
+def FeatureVendorXxldspn2x
+    : SubtargetFeature<"xxldspn2x", "HasVendorXxldspn2x", "true",
+                       "'xxldspn2x' (Nuclei Custom DSP N2 Instructions)",
+                       [FeatureVendorXxldsp,
+                        FeatureVendorXxldspn1x]>;
+def HasVendorXxldspn2x : Predicate<"Subtarget->hasVendorXxldspn2x()">,
+                           AssemblerPredicate<(all_of FeatureVendorXxldspn2x),
+                           "'xxldspn2x' (Nuclei Custom DSP N2 Instructions)">;
+
+def FeatureVendorXxldspn3x
+    : SubtargetFeature<"xxldspn3x", "HasVendorXxldspn3x", "true",
+                       "'xxldspn3x' (Nuclei Custom DSP N3 Instructions)",
+                       [FeatureVendorXxldsp,
+                        FeatureVendorXxldspn1x,
+                        FeatureVendorXxldspn2x]>;
+def HasVendorXxldspn3x : Predicate<"Subtarget->hasVendorXxldspn3x()">,
+                           AssemblerPredicate<(all_of FeatureVendorXxldspn3x),
+                           "'xxldspn3x' (Nuclei Custom DSP N3 Instructions)">;
+
 //===----------------------------------------------------------------------===//
 // LLVM specific features and extensions
 //===----------------------------------------------------------------------===//
