@@ -1888,8 +1888,6 @@ static void findRISCVBareMetalMultilibs(const Driver &D,
 
   std::vector<MultilibBuilder> Ms;
   for (auto Element : RISCVMultilibSet) {
-    bool replace_v = false;
-    std::string newmarch = Twine(Element.march).str();
 
     // multilib path rule is ${march}/${mabi}
     Ms.emplace_back(
@@ -1897,53 +1895,6 @@ static void findRISCVBareMetalMultilibs(const Driver &D,
             (Twine(Element.march) + "/" + Twine(Element.mabi)).str())
             .flag(Twine("-march=", Element.march).str())
             .flag(Twine("-mabi=", Element.mabi).str()));
-    bool replace_v = false;
-    std::string newmarch;
-
-    if (Element.march.contains("v_")) {
-      llvm::SmallVector<llvm::StringRef, 2> SplittedParts;
-      Element.march.split(SplittedParts, "v_", 2);
-
-      replace_v = true;
-      newmarch = llvm::join(SplittedParts, "_");
-    } else if (Element.march.endswith("v")) {
-      newmarch = Element.march.rtrim("v").str();
-      replace_v = true;
-    } else {
-      newmarch = Twine(Element.march).str();
-    }
-    if (replace_v) {
-      // llvm::outs() << "Add extra multilib: " << newmarch << "\n";
-      Ms.emplace_back(
-        MultilibBuilder(
-            (Twine(newmarch) + "/" + Twine(Element.mabi)).str())
-            .flag(Twine("-march=", Element.march).str())
-            .flag(Twine("-mabi=", Element.mabi).str()));
-    }
-    // check whether the selected multilib march removed v's library directory exist,
-    // it must exist, then we can add a new multilib
-    if (NonExistent(MultilibBuilder((Twine(newmarch) + "/" + Twine(Element.mabi)).str()).makeMultilib()) == false) {
-      // If selected multilib march matched with passed March, mark it as added, no need to add it again
-      if (Element.march == MArch) {
-        march_added = true;
-      } else {
-        // If passed March start with selected multilib march and abi matches, then record the added march
-        // the added march need to use the newmarch, since this version removed v extension
-        if (MArch.starts_with(Element.march) && ABIName == Element.mabi) {
-            if (addmarch.length() <= Twine(newmarch).str().length()) {
-              addmarch = Twine(newmarch).str();
-            }
-        }
-      }
-    }
-  }
-  if (march_added == false && addmarch.length() > 0) {
-    // llvm::outs() << "Add extra march: " << addmarch << " for " << MArch << "\n";
-    Ms.emplace_back(
-        MultilibBuilder(
-            (Twine(addmarch) + "/" + Twine(ABIName)).str())
-            .flag(Twine("-march=", MArch).str())
-            .flag(Twine("-mabi=", ABIName).str()));
   }
   MultilibSet RISCVMultilibs =
       MultilibSetBuilder()
@@ -1956,8 +1907,6 @@ static void findRISCVBareMetalMultilibs(const Driver &D,
                  "/../../../../riscv64-unknown-elf/lib" + M.gccSuffix(),
                  "/../../../../riscv32-unknown-elf/lib" + M.gccSuffix()});
           });
-
-  // std::cout << "hello" << std::endl;
 
   Multilib::flags_list Flags;
   llvm::StringSet<> Added_ABIs;
@@ -1975,23 +1924,6 @@ static void findRISCVBareMetalMultilibs(const Driver &D,
 
   if (selectRISCVMultilib(RISCVMultilibs, MArch, Flags,
                           Result.SelectedMultilibs)) {
-  // llvm::outs() << "RISCVMultilibs" << "\n";
-  // for (const auto &Multilib : RISCVMultilibs) {
-  //   llvm::outs() << "  - " << Multilib << "\n";
-  // }
-  // llvm::outs() << "SelectedMultilibs" << "\n";
-  // for (const auto &Multilib : Result.SelectedMultilibs) {
-  //   llvm::outs() << "  - " << Multilib << "\n";
-  // }
-  // llvm::outs() << "Result.Multilibs" << "\n";
-  // for (const auto &Multilib : Result.Multilibs) {
-  //   llvm::outs() << "  - " << Multilib << "\n";
-  // }
-  // llvm::outs() << "Flags" << "\n";
-  // for (const auto &F : Flags) {
-  //   llvm::outs() << "  - " << F << "\n";
-  // }
-    // llvm::outs() << "Found multilib" << "\n";
     Result.Multilibs = RISCVMultilibs;
   }
 
