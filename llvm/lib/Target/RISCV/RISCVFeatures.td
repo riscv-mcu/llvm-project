@@ -1270,6 +1270,82 @@ def HasVendorXwchc
       AssemblerPredicate<(all_of FeatureVendorXwchc),
                          "'Xwchc' (WCH/QingKe additional compressed opcodes)">;
 
+def FeatureVendorXxlczbitop
+    : RISCVExtension<"xxlczbitop", 1, 0,
+                       "'Xxlczbitop' (Nuclei Xxlcz Bit Manipulation Instructions)">;
+def HasVendorXxlczbitop
+    : Predicate<"Subtarget->hasVendorXxlczbitop()">,
+      AssemblerPredicate<(all_of FeatureVendorXxlczbitop),
+                        "'Xxlczbitop' (Nuclei Xxlcz Bit Manipulation Instructions)">;
+
+def FeatureVendorXxlczmac
+    : RISCVExtension<"xxlczmac", 1, 0,
+                       "'Xxlczmac' (Nuclei Xxlcz Immediate Multiplication Instructions)">;
+def HasVendorXxlczmac
+    : Predicate<"Subtarget->hasVendorXxlczmac()">,
+      AssemblerPredicate<(all_of FeatureVendorXxlczmac),
+                        "'Xxlczmac' (Nuclei Xxlcz Immediate Multiplication Instructions)">;
+
+def FeatureVendorXxlczslet
+    : RISCVExtension<"xxlczslet", 1, 0,
+                       "'Xxlczslet' (Nuclei Xxlcz Alu Instructions)">;
+def HasVendorXxlczslet
+    : Predicate<"Subtarget->hasVendorXxlczslet()">,
+      AssemblerPredicate<(all_of FeatureVendorXxlczslet),
+                        "'Xxlczslet' (Nuclei Xxlcz Alu Instructions)">;
+
+def FeatureVendorXxlczbmrk
+    : RISCVExtension<"xxlczbmrk", 1, 0,
+                       "'Xxlczbmrk' (Nuclei Xxlcz Benchmark Instructions)">;
+def HasVendorXxlczbmrk
+    : Predicate<"Subtarget->hasVendorXxlczbmrk()">,
+      AssemblerPredicate<(all_of FeatureVendorXxlczbmrk),
+                        "'Xxlczbmrk' (Nuclei Xxlcz Benchmark Instructions)">;
+
+def FeatureVendorXxlczbri
+    : RISCVExtension<"xxlczbri", 1, 0,
+                       "'Xxlczbri' (Nuclei Xxlcz Immediate Branching Instructions)">;
+def HasVendorXxlczbri
+    : Predicate<"Subtarget->hasVendorXxlczbri()">,
+      AssemblerPredicate<(all_of FeatureVendorXxlczbri),
+                        "'Xxlczbri' (Nuclei Xxlcz Immediate Branching Instructions)">;
+
+def FeatureVendorXxlczbitrev
+    : RISCVExtension<"xxlczbitrev", 1, 0,
+                       "'Xxlczbitrev' (Nuclei Xxlcz Bit Reverse Instructions)">;
+def HasVendorXxlczbitrev
+    : Predicate<"Subtarget->hasVendorXxlczbitrev()">,
+      AssemblerPredicate<(all_of FeatureVendorXxlczbitrev),
+                        "'Xxlczbitrev' (Nuclei Xxlcz Bit Reverse Instructions)">;
+
+def FeatureVendorXxlczpstinc
+    : RISCVExtension<"xxlczpstinc", 1, 0,
+                       "'Xxlczpstinc' (Nuclei Xxlcz Post Increment LOAD-STORE Instructions)">;
+def HasVendorXxlczpstinc
+    : Predicate<"Subtarget->hasVendorXxlczpstinc()">,
+      AssemblerPredicate<(all_of FeatureVendorXxlczpstinc),
+                        "'Xxlczpstinc' (Nuclei Xxlcz Post Increment LOAD-STORE Instructions)">;
+
+def FeatureVendorXxlczgp
+    : RISCVExtension<"xxlczgp", 1, 0,
+                       "'Xxlczgp' (Nuclei Xxlcz GP LOAD-STORE Instructions)">;
+def HasVendorXxlczgp
+    : Predicate<"Subtarget->hasVendorXxlczgp()">,
+      AssemblerPredicate<(all_of FeatureVendorXxlczgp),
+                        "'Xxlczgp' (Nuclei Xxlcz GP LOAD-STORE Instructions)">;
+
+def FeatureVendorXxlcz
+    : RISCVExtension<"xxlcz", 1, 0,
+                       "'Xxlcz' (Nuclei Custom Xxlcz Extension)",
+                        [FeatureVendorXxlczbitop,
+                         FeatureVendorXxlczbitrev,
+                         FeatureVendorXxlczbmrk,
+                         FeatureVendorXxlczbri,
+                         FeatureVendorXxlczgp,
+                         FeatureVendorXxlczmac,
+                         FeatureVendorXxlczpstinc,
+                         FeatureVendorXxlczslet]>;
+
 //===----------------------------------------------------------------------===//
 // LLVM specific features and extensions
 //===----------------------------------------------------------------------===//

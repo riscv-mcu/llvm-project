@@ -620,6 +620,24 @@ DecodeStatus RISCVDisassembler::getInstruction32(MCInst &MI, uint64_t &Size,
                         "CORE-V SIMD extensions custom opcode table");
   TRY_TO_DECODE_FEATURE(RISCV::FeatureVendorXCVbi, DecoderTableXCVbi32,
                         "CORE-V Immediate Branching custom opcode table");
+  TRY_TO_DECODE_FEATURE(RISCV::FeatureVendorXxlczbitop,
+                        DecoderTableXxlczbitop32,
+                        "Nuclei Xxlcz Bit Manipulation opcode table");
+  TRY_TO_DECODE_FEATURE(RISCV::FeatureVendorXxlczmac,
+                        DecoderTableXxlczmac32,
+                        "Nuclei Xxlcz Immediate Multiplication opcode table");
+  TRY_TO_DECODE_FEATURE(RISCV::FeatureVendorXxlczslet, DecoderTableXxlczslet32,
+                        "Nuclei Xxlcz Alu opcode table");
+  TRY_TO_DECODE_FEATURE(RISCV::FeatureVendorXxlczbmrk, DecoderTableXxlczbmrk32,
+                        "Nuclei Xxlcz Benchmark opcode table");
+  TRY_TO_DECODE_FEATURE(RISCV::FeatureVendorXxlczbri, DecoderTableXxlczbri32,
+                        "Nuclei Xxlcz Immediate Branching opcode table");
+  TRY_TO_DECODE_FEATURE(RISCV::FeatureVendorXxlczbitrev, DecoderTableXxlczbitrev32,
+                        "Nuclei Xxlcz Bit Reverse opcode table");
+  TRY_TO_DECODE_FEATURE(RISCV::FeatureVendorXxlczpstinc, DecoderTableXxlczpstinc32,
+                        "Nuclei Xxlcz Post Increment LOAD-STORE opcode table");
+  TRY_TO_DECODE_FEATURE(RISCV::FeatureVendorXxlczgp, DecoderTableXxlczgp32,
+                        "Nuclei Xxlcz GP LOAD-STORE opcode table");
   TRY_TO_DECODE(true, DecoderTable32, "RISCV32 table");
 
   return MCDisassembler::Fail;

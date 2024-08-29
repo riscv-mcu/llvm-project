@@ -871,6 +871,17 @@ public:
            VK == RISCVMCExpr::VK_RISCV_None;
   }
 
+
+  bool isUImm10Lsb0() const {
+    if (!isImm())
+      return false;
+    int64_t Imm;
+    RISCVMCExpr::VariantKind VK = RISCVMCExpr::VK_RISCV_None;
+    bool IsConstantImm = evaluateConstantImm(getImm(), Imm, VK);
+    return IsConstantImm && isShiftedUInt<9, 1>(Imm) &&
+           VK == RISCVMCExpr::VK_RISCV_None;
+  }
+
   bool isUImm10Lsb00NonZero() const {
     if (!isImm())
       return false;
