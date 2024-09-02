@@ -2082,6 +2082,7 @@ include "RISCVInstrInfoSFB.td"
 include "RISCVInstrInfoXCV.td"
 include "RISCVInstrInfoXwch.td"
 include "RISCVInstrInfoXxlcz.td"
+include "RISCVInstrInfoXxldsp.td"
 
 //===----------------------------------------------------------------------===//
 // Global ISel

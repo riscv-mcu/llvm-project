@@ -1346,6 +1346,41 @@ def FeatureVendorXxlcz
                          FeatureVendorXxlczpstinc,
                          FeatureVendorXxlczslet]>;
 
+def FeatureVendorXxldsp
+    : RISCVExtension<"xxldsp", 1, 0,
+                       "'xxldsp' (Packed-SIMD Instructions)">;
+def HasVendorXxldsp : Predicate<"Subtarget->hasVendorXxldsp()">,
+                           AssemblerPredicate<(all_of FeatureVendorXxldsp),
+                           "'xxldsp' (Packed-SIMD Instructions)">;
+
+def FeatureVendorXxldspn1x
+    : RISCVExtension<"xxldspn1x", 1, 0,
+                       "'xxldspn1x' (Nuclei Custom DSP N1 Instructions)",
+                       [FeatureVendorXxldsp]>;
+def HasVendorXxldspn1x : Predicate<"Subtarget->hasVendorXxldspn1x()">,
+                           AssemblerPredicate<(all_of FeatureVendorXxldspn1x),
+                           "'xxldspn1x' (Nuclei Custom DSP N1 Instructions)">;
+
+def FeatureVendorXxldspn2x
+    : RISCVExtension<"xxldspn2x", 1, 0,
+                       "'xxldspn2x' (Nuclei Custom DSP N2 Instructions)",
+                       [FeatureVendorXxldsp,
+                        FeatureVendorXxldspn1x]>;
+def HasVendorXxldspn2x : Predicate<"Subtarget->hasVendorXxldspn2x()">,
+                           AssemblerPredicate<(all_of FeatureVendorXxldspn2x),
+                           "'xxldspn2x' (Nuclei Custom DSP N2 Instructions)">;
+
+def FeatureVendorXxldspn3x
+    : RISCVExtension<"xxldspn3x", 1, 0,
+                       "'xxldspn3x' (Nuclei Custom DSP N3 Instructions)",
+                       [FeatureVendorXxldsp,
+                        FeatureVendorXxldspn1x,
+                        FeatureVendorXxldspn2x]>;
+def HasVendorXxldspn3x : Predicate<"Subtarget->hasVendorXxldspn3x()">,
+                           AssemblerPredicate<(all_of FeatureVendorXxldspn3x),
+                           "'xxldspn3x' (Nuclei Custom DSP N3 Instructions)">;
+
+
 //===----------------------------------------------------------------------===//
 // LLVM specific features and extensions
 //===----------------------------------------------------------------------===//

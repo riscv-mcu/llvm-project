@@ -638,6 +638,14 @@ DecodeStatus RISCVDisassembler::getInstruction32(MCInst &MI, uint64_t &Size,
                         "Nuclei Xxlcz Post Increment LOAD-STORE opcode table");
   TRY_TO_DECODE_FEATURE(RISCV::FeatureVendorXxlczgp, DecoderTableXxlczgp32,
                         "Nuclei Xxlcz GP LOAD-STORE opcode table");
+  TRY_TO_DECODE_FEATURE(RISCV::FeatureVendorXxldsp, DecoderTableXxldsp32,
+                        "Nuclei Xxldsp opcode table");
+  TRY_TO_DECODE_FEATURE(RISCV::FeatureVendorXxldspn1x, DecoderTableXxldspn1x32,
+                        "Nuclei Xxldspn1x opcode table");
+  TRY_TO_DECODE_FEATURE(RISCV::FeatureVendorXxldspn2x, DecoderTableXxldspn2x32,
+                        "Nuclei Xxldspn2x opcode table");
+  TRY_TO_DECODE_FEATURE(RISCV::FeatureVendorXxldspn3x, DecoderTableXxldspn3x32,
+                          "Nuclei Xxldspn3x opcode table");
   TRY_TO_DECODE(true, DecoderTable32, "RISCV32 table");
 
   return MCDisassembler::Fail;
