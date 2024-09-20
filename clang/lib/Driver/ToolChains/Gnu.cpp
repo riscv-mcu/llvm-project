@@ -1835,12 +1835,29 @@ selectRISCVMultilib(const MultilibSet &RISCVMultilibSet, StringRef Arch,
 
   if (NewRISCVMultilibs.select(NewFlags, SelectedMultilibs))
     for (const Multilib &NewSelectedM : SelectedMultilibs)
-      for (const auto &M : RISCVMultilibSet)
-        // Look up the corresponding multi-lib entry in original multi-lib set.
-        if (M.gccSuffix() == NewSelectedM.gccSuffix())
-          return true;
+        for (const auto &M : RISCVMultilibSet) {
+            // Look up the corresponding multi-lib entry in original multi-lib set.
+            if (M.gccSuffix() == NewSelectedM.gccSuffix())
+              return true;
+        }
 
   return false;
+}
+
+static std::string FixMarchStr(StringRef marchStr) {
+  size_t pos = marchStr.find('_');
+  if (pos != llvm::StringRef::npos) {
+    std::pair<llvm::StringRef, llvm::StringRef> parts = marchStr.split('_');
+    if (parts.first.contains('a')) {
+      return (parts.first.str() + "_zaamo_zalrsc_" + parts.second.str());
+    } else {
+      return marchStr.str();
+    }
+  }
+  if (marchStr.contains('a')) {
+    return marchStr.str() + "_zaamo_zalrsc";
+  }
+  return marchStr.str();
 }
 
 static void findRISCVBareMetalMultilibs(const Driver &D,
@@ -1855,18 +1872,44 @@ static void findRISCVBareMetalMultilibs(const Driver &D,
   // currently only support the set of multilibs like riscv-gnu-toolchain does.
   // TODO: support MULTILIB_REUSE
   constexpr RiscvMultilib RISCVMultilibSet[] = {
-      {"rv32i", "ilp32"},     {"rv32im", "ilp32"},     {"rv32iac", "ilp32"},
-      {"rv32imac", "ilp32"},  {"rv32imafc", "ilp32f"}, {"rv64imac", "lp64"},
-      {"rv64imafdc", "lp64d"}};
+      {"rv32ec", "ilp32e"}, {"rv32eac", "ilp32e"}, {"rv32emc", "ilp32e"}, {"rv32ec_zmmul", "ilp32e"}, {"rv32emac", "ilp32e"},
+      {"rv32ic", "ilp32"}, {"rv32iac", "ilp32"}, {"rv32imc", "ilp32"}, {"rv32ic_zmmul", "ilp32"}, {"rv32e_zca_zcb_zcmp", "ilp32e"},
+      {"rv32em_zca_zcb_zcmp", "ilp32e"}, {"rv32e_zmmul_zca_zcb_zcmp", "ilp32e"}, {"rv32ea_zca_zcb_zcmp", "ilp32e"},
+      {"rv32ema_zca_zcb_zcmp", "ilp32e"}, {"rv32i_zca_zcb_zcmp", "ilp32"}, {"rv32ia_zca_zcb_zcmp", "ilp32"},
+      {"rv32im_zca_zcb_zcmp", "ilp32"}, {"rv32i_zmmul_zca_zcb_zcmp", "ilp32"},{"rv32imac", "ilp32"},
+      {"rv32imafc", "ilp32f"}, {"rv32imafdc", "ilp32d"}, {"rv32imac_zba_zbb_zbs", "ilp32"}, {"rv32imafc_zba_zbb_zbs", "ilp32f"},
+      {"rv32imafdc_zba_zbb_zbs", "ilp32d"}, {"rv32ima_zca_zcb_zcmp", "ilp32"}, {"rv32imaf_zca_zcb_zcf_zcmp", "ilp32f"},
+      {"rv32imafd_zca_zcb_zcf_zcmp", "ilp32d"}, {"rv32imafd_zca_zcb_zcd_zcf", "ilp32d"}, {"rv32ima_zca_zcb_zcmp_zba_zbb_zbs", "ilp32"},
+      {"rv32imaf_zca_zcb_zcf_zcmp_zba_zbb_zbs", "ilp32f"}, {"rv32imafd_zca_zcb_zcd_zcf_zba_zbb_zbs", "ilp32d"},
+      {"rv32imafd_zca_zcb_zcf_zcmp_zba_zbb_zbs", "ilp32d"}, {"rv32imac_xxldsp", "ilp32"}, {"rv32imafc_xxldsp", "ilp32f"},
+      {"rv32imafdc_xxldsp", "ilp32d"}, {"rv32imac_zba_zbb_zbs_xxldsp", "ilp32"}, {"rv32imafc_zba_zbb_zbs_xxldsp", "ilp32f"},
+      {"rv32imafdc_zba_zbb_zbs_xxldsp", "ilp32d"}, {"rv32ima_zca_zcb_zcmp_xxldsp", "ilp32"}, {"rv32imaf_zca_zcb_zcf_zcmp_xxldsp", "ilp32f"},
+      {"rv32imafd_zca_zcb_zcd_zcf_xxldsp", "ilp32d"}, {"rv32imafd_zca_zcb_zcf_zcmp_xxldsp", "ilp32d"},
+      {"rv32ima_zca_zcb_zcmp_zba_zbb_zbs_xxldsp", "ilp32"}, {"rv32imaf_zca_zcb_zcf_zcmp_zba_zbb_zbs_xxldsp", "ilp32f"},
+      {"rv32imafd_zca_zcb_zcd_zcf_zba_zbb_zbs_xxldsp", "ilp32d"}, {"rv32imafd_zca_zcb_zcf_zcmp_zba_zbb_zbs_xxldsp", "ilp32d"},
+      {"rv64imac", "lp64"}, {"rv64imafc", "lp64f"}, {"rv64imafdc", "lp64d"}, {"rv64imac_zba_zbb_zbs", "lp64"},
+      {"rv64imafc_zba_zbb_zbs", "lp64f"}, {"rv64imafdc_zba_zbb_zbs", "lp64d"}, {"rv64ima_zca_zcb_zcmp", "lp64"}, {"rv64imaf_zca_zcb_zcmp", "lp64f"},
+      {"rv64imafd_zca_zcb_zcd", "lp64d"}, {"rv64ima_zca_zcb_zcmp_zba_zbb_zbs", "lp64"},
+      {"rv64imaf_zca_zcb_zcmp_zba_zbb_zbs", "lp64f"}, {"rv64imafd_zca_zcb_zcd_zba_zbb_zbs", "lp64d"}};
 
   std::vector<MultilibBuilder> Ms;
   for (auto Element : RISCVMultilibSet) {
+    std::string fixed_march = FixMarchStr(Element.march);
     // multilib path rule is ${march}/${mabi}
     Ms.emplace_back(
         MultilibBuilder(
             (Twine(Element.march) + "/" + Twine(Element.mabi)).str())
             .flag(Twine("-march=", Element.march).str())
             .flag(Twine("-mabi=", Element.mabi).str()));
+    // when A extension present in march, add extra _zaamo_zalrsc extension str into search
+    if (fixed_march != Element.march.str()) {
+
+      Ms.emplace_back(
+          MultilibBuilder(
+              (Twine(fixed_march) + "/" + Twine(Element.mabi)).str())
+              .flag(Twine("-march=", Element.march).str())
+              .flag(Twine("-mabi=", Element.mabi).str()));
+    }
   }
   MultilibSet RISCVMultilibs =
       MultilibSetBuilder()
