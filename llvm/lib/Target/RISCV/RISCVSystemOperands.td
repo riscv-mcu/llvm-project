@@ -455,3 +455,129 @@ def : SysReg<"mnscratch", 0x740>;
 def : SysReg<"mnepc", 0x741>;
 def : SysReg<"mncause", 0x742>;
 def : SysReg<"mnstatus", 0x744>;
+
+//===-------------------------------------------===//
+// Nuclei Custom CSRs
+//===-------------------------------------------===//
+def : SysReg<"mnvec", 0x7c3>;
+def : SysReg<"msubm", 0x7c4>;
+def : SysReg<"mstack_ctl", 0x7c6>;
+def : SysReg<"mstack_bound", 0x7c7>;
+def : SysReg<"mstack_base", 0x7c8>;
+def : SysReg<"mdcause", 0x7c9>;
+def : SysReg<"mmisc_ctl", 0x7d0>;
+def : SysReg<"msavestatus", 0x7d6>;
+def : SysReg<"msaveepc1", 0x7d7>;
+def : SysReg<"msaveepc2", 0x7d9>;
+def : SysReg<"msavecause1", 0x7d8>;
+def : SysReg<"msavecause2", 0x7da>;
+def : SysReg<"pushmsubm", 0x7eb>;
+def : SysReg<"mtvt2", 0x7ec>;
+def : SysReg<"jalmnxti", 0x7ed>;
+def : SysReg<"pushmcause", 0x7ee>;
+def : SysReg<"pushmepc", 0x7ef>;
+def : SysReg<"sleepvalue", 0x811>;
+def : SysReg<"txevt", 0x812>;
+def : SysReg<"wfe", 0x810>;
+def : SysReg<"safety_crc_ctl", 0x813>;
+def : SysReg<"safety_stl_status", 0x814>;
+def : SysReg<"shartid", 0xdc0>;
+//ECC
+def : SysReg<"micfg_info", 0xfc0>;
+def : SysReg<"mdcfg_info", 0xfc1>;
+def : SysReg<"mcfg_info", 0xfc2>;
+def : SysReg<"mtlbcfg_info", 0xfc3>;
+def : SysReg<"milm_ctl", 0x7c0>;
+def : SysReg<"mdlm_ctl", 0x7c1>;
+def : SysReg<"mecc_code", 0x7c2>;
+def : SysReg<"mtlb_ctl", 0x7dd>;
+def : SysReg<"mecc_lock", 0x7de>;
+def : SysReg<"mcache_ctl", 0x7ca>;
+def : SysReg<"mecc_ctl", 0xbc0>;
+def : SysReg<"mecc_status", 0xbc4>;
+//LOCKSTEP
+def : SysReg<"lstepforc", 0x7e9>;
+//TEE
+def : SysReg<"smpucfg0", 0x1a0>;
+def : SysReg<"smpucfg1", 0x1a1>;
+def : SysReg<"smpucfg2", 0x1a2>;
+def : SysReg<"smpucfg3", 0x1a3>;
+def : SysReg<"smpuaddr0", 0x1b0>;
+def : SysReg<"smpuaddr1", 0x1b1>;
+def : SysReg<"smpuaddr2", 0x1b2>;
+def : SysReg<"smpuswitch0", 0x170>;
+def : SysReg<"smpuswitch1", 0x171>;
+def : SysReg<"jalsnxti", 0x947>;
+def : SysReg<"stvt2", 0x948>;
+def : SysReg<"pushscause", 0x949>;
+def : SysReg<"pushsepc", 0x94a>;
+def : SysReg<"sdcause", 0x9c0>;
+//CCM
+def : SysReg<"ccm_mbeginaddr", 0x7cb>;
+def : SysReg<"ccm_mcommand", 0x7cc>;
+def : SysReg<"ccm_mdata", 0x7cd>;
+def : SysReg<"ccm_suen", 0x7ce>;
+def : SysReg<"ccm_sbeginaddr", 0x5cb>;
+def : SysReg<"ccm_scommand", 0x5cc>;
+def : SysReg<"ccm_sdata", 0x5cd>;
+def : SysReg<"ccm_ubeginaddr", 0x4cb>;
+def : SysReg<"ccm_ucommand", 0x4cc>;
+def : SysReg<"ccm_udata", 0x4cd>;
+def : SysReg<"ccm_fpipe", 0x4cf>;
+//VPU
+def : SysReg<"mfp16mode", 0x7e2>;
+//PPI
+def : SysReg<"mppicfg_info", 0x7f0>;
+//FIO
+def : SysReg<"mfiocfg_info", 0x7f1>;
+//IREGION
+def : SysReg<"mirgb_info", 0x7f7>;
+//NCDEV
+def : SysReg<"mattri0_base", 0x7f3>;
+def : SysReg<"mattri0_mask", 0x7f4>;
+def : SysReg<"mattri1_base", 0x7f5>;
+def : SysReg<"mattri1_mask", 0x7f6>;
+def : SysReg<"mattri2_base", 0x7f9>;
+def : SysReg<"mattri2_mask", 0x7fa>;
+def : SysReg<"mattri3_base", 0x7fb>;
+def : SysReg<"mattri3_mask", 0x7fc>;
+def : SysReg<"mattri4_base", 0x7fd>;
+def : SysReg<"mattri4_mask", 0x7fe>;
+def : SysReg<"mattri5_base", 0xbe0>;
+def : SysReg<"mattri5_mask", 0xbe1>;
+def : SysReg<"mattri6_base", 0xbe2>;
+def : SysReg<"mattri6_mask", 0xbe3>;
+def : SysReg<"mattri7_base", 0xbe4>;
+def : SysReg<"mattri7_mask", 0xbe5>;
+def : SysReg<"mmacro_dev_en", 0xbc8>;
+def : SysReg<"mmacro_nc_en", 0xbc9>;
+def : SysReg<"mmacro_cach_en", 0xbca>;
+//SUPERVISOR
+def : SysReg<"sattri0_base", 0x5f0>;
+def : SysReg<"sattri0_mask", 0x5f1>;
+def : SysReg<"sattri1_base", 0x5f2>;
+def : SysReg<"sattri1_mask", 0x5f3>;
+def : SysReg<"sattri2_base", 0x5f4>;
+def : SysReg<"sattri2_mask", 0x5f5>;
+def : SysReg<"sattri3_base", 0x5f6>;
+def : SysReg<"sattri3_mask", 0x5f7>;
+def : SysReg<"sattri4_base", 0x5f8>;
+def : SysReg<"sattri4_mask", 0x5f9>;
+def : SysReg<"sattri5_base", 0x5fa>;
+def : SysReg<"sattri5_mask", 0x5fb>;
+def : SysReg<"sattri6_base", 0x5fc>;
+def : SysReg<"sattri6_mask", 0x5fd>;
+def : SysReg<"sattri7_base", 0x5fe>;
+def : SysReg<"sattri7_mask", 0x5ff>;
+//CUSTOM CSR
+def : SysReg<"mtvt",  0x307>;
+def : SysReg<"mnxti", 0x345>;
+def : SysReg<"mintstatus", 0x346>;
+def : SysReg<"mscratchcsw", 0x348>;
+def : SysReg<"mscratchcswl", 0x349>;
+def : SysReg<"msavedcause1", 0x7db>;
+def : SysReg<"msavedcause2", 0x7dc>;
+def : SysReg<"ucode", 0x801>;
+def : SysReg<"mlwid", 0x390>;
+def : SysReg<"mwiddeleg", 0x748>;
+def : SysReg<"slwid", 0x190>;
