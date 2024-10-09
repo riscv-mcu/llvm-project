@@ -646,6 +646,8 @@ DecodeStatus RISCVDisassembler::getInstruction32(MCInst &MI, uint64_t &Size,
                         "Nuclei Xxldspn2x opcode table");
   TRY_TO_DECODE_FEATURE(RISCV::FeatureVendorXxldspn3x, DecoderTableXxldspn3x32,
                           "Nuclei Xxldspn3x opcode table");
+  TRY_TO_DECODE_FEATURE(RISCV::FeatureVendorXxlvqmacc, DecoderTableXxlvqmacc32,
+                        "Nuclei Matrix Multiplication (4x4 and 4x4) Instruction opcode table");
   TRY_TO_DECODE(true, DecoderTable32, "RISCV32 table");
 
   return MCDisassembler::Fail;

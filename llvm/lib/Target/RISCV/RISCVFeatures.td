@@ -1380,6 +1380,15 @@ def HasVendorXxldspn3x : Predicate<"Subtarget->hasVendorXxldspn3x()">,
                            AssemblerPredicate<(all_of FeatureVendorXxldspn3x),
                            "'xxldspn3x' (Nuclei Custom DSP N3 Instructions)">;
 
+def FeatureVendorXxlvqmacc
+    : RISCVExtension<"xxlvqmacc", 1, 0,
+                     "'Xxlvqmacc' (Nuclei Int8 Matrix Multiplication Instructions (4-by-4 and 4-by-4))",
+                     [FeatureStdExtZve32x]>;
+def HasVendorXxlvqmacc
+    : Predicate<"Subtarget->hasVendorXxlvqmacc()">,
+      AssemblerPredicate<(all_of FeatureVendorXxlvqmacc),
+                         "'Xxlvqmacc' (Nuclei Int8 Matrix Multiplication Instructions (4-by-4 and 4-by-4))">;
+
 
 //===----------------------------------------------------------------------===//
 // LLVM specific features and extensions
