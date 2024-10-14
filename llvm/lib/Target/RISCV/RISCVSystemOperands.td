@@ -550,8 +550,10 @@ def : SysReg<"mattri6_mask", 0xbe3>;
 def : SysReg<"mattri7_base", 0xbe4>;
 def : SysReg<"mattri7_mask", 0xbe5>;
 def : SysReg<"mmacro_dev_en", 0xbc8>;
-def : SysReg<"mmacro_nc_en", 0xbc9>;
-def : SysReg<"mmacro_cach_en", 0xbca>;
+let AltName = "mmacro_nc_en" in
+def : SysReg<"mmacro_noc_en", 0xbc9>;
+let AltName = "mmacro_cach_en" in
+def : SysReg<"mmacro_ca_en", 0xbca>;
 //SUPERVISOR
 def : SysReg<"sattri0_base", 0x5f0>;
 def : SysReg<"sattri0_mask", 0x5f1>;
@@ -581,3 +583,10 @@ def : SysReg<"ucode", 0x801>;
 def : SysReg<"mlwid", 0x390>;
 def : SysReg<"mwiddeleg", 0x748>;
 def : SysReg<"slwid", 0x190>;
+//N100
+def : SysReg<"irqcip", 0xbd0>;
+def : SysReg<"irqcie", 0xbd1>;
+def : SysReg<"msip", 0xbd8>;
+def : SysReg<"mtimecmp", 0xbd9>;
+def : SysReg<"mtime", 0xbda>;
+def : SysReg<"mstop", 0xbdb>;
