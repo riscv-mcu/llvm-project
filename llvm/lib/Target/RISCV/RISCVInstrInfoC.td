@@ -1045,3 +1045,66 @@ let Predicates = [HasStdExtCOrZca, IsRV64] in {
 def : CompressPat<(SD GPR:$rs2, SPMem:$rs1, uimm9_lsb000:$imm),
                   (C_SDSP GPR:$rs2, SPMem:$rs1, uimm9_lsb000:$imm)>;
 } // Predicates = [HasStdExtCOrZca, IsRV64]
+
+let Predicates = [IsRV32, HasStdExtCOrZca, HasStdExtZclsd] in {
+let DecoderNamespace = "Zclsd" in {
+let hasSideEffects = 0, mayLoad = 1, mayStore = 0 in
+def ZCLSD_C_LD :RVInst16<(outs GPR:$rdc_p), (ins GPRCMem:$rs1c_p, uimm8_lsb000:$immd_cl),
+                "c.ld", "${rdc_p}, ${immd_cl}(${rs1c_p})", [], InstFormatCI>, Sched<[]> {
+  bits<8> immd_cl;
+  bits<3> rs1c_p;
+  bits<3> rdc_p;
+  let Inst{15-13} = 3;
+  let Inst{6-5} = immd_cl{7-6};
+  let Inst{12-10} = immd_cl{5-3};
+  let Inst{9-7} = rs1c_p;
+  let Inst{4-2} = rdc_p;
+  let Inst{1-0} = 0;
+}
+}
+
+let DecoderNamespace = "Zclsd" in {
+let hasSideEffects = 0, mayLoad = 1, mayStore = 0 in
+def ZCLSD_C_LDSP :RVInst16<(outs GPR:$rx), (ins SPMem:$sp, uimm9_lsb000:$immd_ci),
+                  "c.ldsp", "${rx}, ${immd_ci}(${sp})", [], InstFormatCI>, Sched<[]>{
+  bits<9> immd_ci;
+  bits<5> rx;
+  let Inst{15-13} = 3;
+  let Inst{4-2} = immd_ci{8-6};
+  let Inst{12-12} = immd_ci{5-5};
+  let Inst{6-5} = immd_ci{4-3};
+  let Inst{11-7} = rx;
+  let Inst{1-0} = 2;
+}
+}
+
+let DecoderNamespace = "Zclsd" in {
+let hasSideEffects = 0, mayLoad = 0, mayStore = 1 in
+def ZCLSD_C_SD :RVInst16<(outs), (ins GPR:$rs2c_p, GPRCMem:$rs1c_p, uimm8_lsb000:$immd_cs),
+                "c.sd", "${rs2c_p}, ${immd_cs}(${rs1c_p})", [], InstFormatCS>, Sched<[]>{
+  bits<8> immd_cs;
+  bits<3> rs1c_p;
+  bits<3> rs2c_p;
+  let Inst{15-13} = 7;
+  let Inst{6-5} = immd_cs{7-6};
+  let Inst{12-10} = immd_cs{5-3};
+  let Inst{9-7} = rs1c_p;
+  let Inst{4-2} = rs2c_p;
+  let Inst{1-0} = 0;
+}
+}
+
+let DecoderNamespace = "Zclsd" in {
+let hasSideEffects = 0, mayLoad = 0, mayStore = 1 in
+def ZCLSD_C_SDSP :RVInst16<(outs), (ins GPR:$rs2c, SPMem:$sp, uimm9_lsb000:$immd_css),
+                  "c.sdsp", "${rs2c}, ${immd_css}(${sp})", [], InstFormatCS>, Sched<[]>{
+  bits<9> immd_css;
+  bits<5> rs2c;
+  let Inst{15-13} = 7;
+  let Inst{9-7} = immd_css{8-6};
+  let Inst{12-10} = immd_css{5-3};
+  let Inst{6-2} = rs2c;
+  let Inst{1-0} = 2;
+}
+}
+} // let Predicates = [IsRV32, HasStdExtZca, HasStdExtZclsd]

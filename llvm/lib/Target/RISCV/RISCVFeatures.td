@@ -183,6 +183,20 @@ def HasStdExtZicfiss : Predicate<"Subtarget->hasStdExtZicfiss()">,
                                           "'Zicfiss' (Shadow stack)">;
 def NoHasStdExtZicfiss : Predicate<"!Subtarget->hasStdExtZicfiss()">;
 
+def FeatureStdExtZclsd
+    : RISCVExtension<"zclsd", 0, 10,
+                     "'Zclsd' (Zclsd Extension Test)">;
+def HasStdExtZclsd : Predicate<"Subtarget->hasStdExtZclsd()">,
+                        AssemblerPredicate<(all_of FeatureStdExtZclsd),
+                        "'Zclsd' (Zclsd Extension Test)">;
+
+def FeatureStdExtZilsd
+    : RISCVExtension<"zilsd", 0, 10,
+                     "'Zilsd' (Zilsd Extension Test)">;
+def HasStdExtZilsd : Predicate<"Subtarget->hasStdExtZilsd()">,
+                        AssemblerPredicate<(all_of FeatureStdExtZilsd),
+                        "'Zilsd' (Zilsd Extension Test)">;
+
 // Multiply Extensions
 
 def FeatureStdExtZmmul

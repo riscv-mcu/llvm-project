@@ -551,6 +551,8 @@ DecodeStatus RISCVDisassembler::getInstruction32(MCInst &MI, uint64_t &Size,
                     !STI.hasFeature(RISCV::Feature64Bit),
                 DecoderTableRV32Zacas32,
                 "RV32Zacas table (Compare-And-Swap and rv32)");
+  TRY_TO_DECODE_FEATURE(RISCV::FeatureStdExtZilsd, DecoderTableZilsd32,
+                        "Zilsd table (Integer load store pairs)");
   TRY_TO_DECODE_FEATURE(RISCV::FeatureStdExtZfinx, DecoderTableRVZfinx32,
                         "RVZfinx table (Float in Integer)");
   TRY_TO_DECODE_FEATURE(RISCV::FeatureVendorXVentanaCondOps,
@@ -674,6 +676,9 @@ DecodeStatus RISCVDisassembler::getInstruction16(MCInst &MI, uint64_t &Size,
   TRY_TO_DECODE_FEATURE(
       RISCV::FeatureStdExtZcmp, DecoderTableRVZcmp16,
       "Zcmp table (16-bit Push/Pop & Double Move Instructions)");
+  TRY_TO_DECODE_AND_ADD_SP(STI.hasFeature(RISCV::FeatureStdExtZclsd),
+                           DecoderTableZclsd16,
+                           "Zclsd table (16-bit Table Jump Instructions)");
   TRY_TO_DECODE_AND_ADD_SP(STI.hasFeature(RISCV::FeatureVendorXwchc),
                            DecoderTableXwchc16,
                            "WCH QingKe XW custom opcode table");

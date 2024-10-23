@@ -776,6 +776,39 @@ def SRAW  : ALUW_rr<0b0100000, 0b101, "sraw">,
 } // IsSignExtendingOpW = 1
 } // Predicates = [IsRV64]
 
+let Predicates = [IsRV32, HasStdExtZilsd] in {
+let DecoderNamespace = "Zilsd" in {
+let hasSideEffects = 0, mayLoad = 1, mayStore = 0 in
+def ZILSD_LD :RVInst<(outs GPR:$rd), (ins GPRMem:$rs1, simm12:$imm_i),
+              "ld", "${rd}, ${imm_i}(${rs1})", [], InstFormatI>, Sched<[]>{
+  bits<12> imm_i;
+  bits<5> rs1;
+  bits<5> rd;
+  let Inst{31-20} = imm_i{11-0};
+  let Inst{19-15} = rs1;
+  let Inst{14-12} = 3;
+  let Inst{11-7} = rd;
+  let Inst{6-0} = 3;
+}
+}
+
+let DecoderNamespace = "Zilsd" in {
+let hasSideEffects = 0, mayLoad = 0, mayStore = 1 in
+def ZILSD_SD :RVInst<(outs), (ins GPR:$rs2, GPRMem:$rs1, simm12:$imm_s),
+              "sd", "${rs2}, ${imm_s}(${rs1})", [], InstFormatS>, Sched<[]>{
+  bits<12> imm_s;
+  bits<5> rs2;
+  bits<5> rs1;
+  let Inst{31-25} = imm_s{11-5};
+  let Inst{11-7} = imm_s{4-0};
+  let Inst{24-20} = rs2;
+  let Inst{19-15} = rs1;
+  let Inst{14-12} = 3;
+  let Inst{6-0} = 35;
+}
+}
+}
+
 //===----------------------------------------------------------------------===//
 // Privileged instructions
 //===----------------------------------------------------------------------===//
