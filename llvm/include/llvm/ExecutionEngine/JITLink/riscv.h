@@ -203,6 +203,13 @@ enum EdgeKind_riscv : Edge::Kind {
   ///   Fixup <- (Target - Fixup + Addend)
   R_RISCV_32_PCREL,
 
+  /// PC-relative xl_bmrk branch pointer value relocation
+  ///
+  /// Fixup expression:
+  ///   Fixup <- (Target - Fixup + Addend)
+  ///
+  R_RISCV_XL_BMRK_BRANCH,
+
   /// An auipc/jalr pair eligible for linker relaxation.
   ///
   /// Linker relaxation will replace this with R_RISCV_RVC_JUMP or R_RISCV_JAL

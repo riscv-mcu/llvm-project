@@ -53,6 +53,7 @@ def InstFormatCLH    : InstFormat<19>;
 def InstFormatCSB    : InstFormat<20>;
 def InstFormatCSH    : InstFormat<21>;
 def InstFormatOther  : InstFormat<22>;
+def InstFormatXLBmrk : InstFormat<23>;
 
 class RISCVVConstraint<bits<3> val> {
   bits<3> Value = val;

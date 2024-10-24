@@ -62,6 +62,7 @@ public:
     case ELF::R_RISCV_CALL:
     case ELF::R_RISCV_CALL_PLT:
     case ELF::R_RISCV_BRANCH:
+    case ELF::R_RISCV_XL_BMRK_BRANCH:
     case ELF::R_RISCV_RVC_BRANCH:
     case ELF::R_RISCV_RVC_JUMP:
     case ELF::R_RISCV_GOT_HI20:

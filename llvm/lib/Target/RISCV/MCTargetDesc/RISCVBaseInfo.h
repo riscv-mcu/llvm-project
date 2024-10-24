@@ -52,6 +52,7 @@ enum {
   InstFormatCSB = 20,
   InstFormatCSH = 21,
   InstFormatOther = 22,
+  InstFormatXLBmrk = 23,
 
   InstFormatMask = 31,
   InstFormatShift = 0,

@@ -222,6 +222,20 @@ private:
           (RawInstr & 0x1FFF07F) | Imm12 | Imm10_5 | Imm4_1 | Imm11;
       break;
     }
+    case R_RISCV_XL_BMRK_BRANCH: {
+      int64_t Value = E.getTarget().getAddress() + E.getAddend() - FixupAddress;
+      if (LLVM_UNLIKELY(!isInRangeForImm(Value >> 1, 11)))
+        return makeTargetOutOfRangeError(G, B, E);
+      if (LLVM_UNLIKELY(!isAlignmentCorrect(Value, 2)))
+        return makeAlignmentError(FixupAddress, Value, 2, E);
+      uint32_t Imm10_5 = extractBits(Value, 5, 6) << 25;
+      uint32_t Imm4_1 = extractBits(Value, 1, 4) << 8;
+      uint32_t Imm11 = extractBits(Value, 11, 1) << 7;
+      uint32_t RawInstr = *(little32_t *)FixupPtr;
+      *(little32_t *)FixupPtr =
+          (RawInstr & 0x81FFF07F) | Imm10_5 | Imm4_1 | Imm11;
+      break;
+    }
     case R_RISCV_JAL: {
       int64_t Value = E.getTarget().getAddress() + E.getAddend() - FixupAddress;
       if (LLVM_UNLIKELY(!isInRangeForImm(Value >> 1, 20)))
@@ -789,6 +803,8 @@ private:
       return EdgeKind_riscv::R_RISCV_64;
     case ELF::R_RISCV_BRANCH:
       return EdgeKind_riscv::R_RISCV_BRANCH;
+    case ELF::R_RISCV_XL_BMRK_BRANCH:
+      return EdgeKind_riscv::R_RISCV_XL_BMRK_BRANCH;
     case ELF::R_RISCV_JAL:
       return EdgeKind_riscv::R_RISCV_JAL;
     case ELF::R_RISCV_CALL:

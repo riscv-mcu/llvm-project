@@ -595,6 +595,7 @@ static uint64_t getAArch64UndefinedRelativeWeakVA(uint64_t type, uint64_t p) {
 static uint64_t getRISCVUndefinedRelativeWeakVA(uint64_t type, uint64_t p) {
   switch (type) {
   case R_RISCV_BRANCH:
+  case R_RISCV_XL_BMRK_BRANCH:
   case R_RISCV_JAL:
   case R_RISCV_CALL:
   case R_RISCV_CALL_PLT:

@@ -105,6 +105,7 @@ static bool isSupportedRISCV(uint64_t Type) {
   case ELF::R_RISCV_CALL:
   case ELF::R_RISCV_CALL_PLT:
   case ELF::R_RISCV_BRANCH:
+  case ELF::R_RISCV_XL_BMRK_BRANCH:
   case ELF::R_RISCV_RELAX:
   case ELF::R_RISCV_GOT_HI20:
   case ELF::R_RISCV_PCREL_HI20:
@@ -214,6 +215,7 @@ static size_t getSizeForTypeRISCV(uint64_t Type) {
     return 2;
   case ELF::R_RISCV_JAL:
   case ELF::R_RISCV_BRANCH:
+  case ELF::R_RISCV_XL_BMRK_BRANCH:
   case ELF::R_RISCV_PCREL_HI20:
   case ELF::R_RISCV_PCREL_LO12_I:
   case ELF::R_RISCV_PCREL_LO12_S:
@@ -543,6 +545,12 @@ static uint64_t extractBImmRISCV(uint32_t Contents) {
       (((Contents >> 7) & 0x1) << 11) | (((Contents >> 31) & 0x1) << 12));
 }
 
+static uint64_t extractXLBmrkImmRISCV(uint32_t Contents) {
+  return SignExtend64<12>(
+      (((Contents >> 8) & 0xf) << 1) | (((Contents >> 25) & 0x3f) << 5) |
+      (((Contents >> 7) & 0x1) << 11));
+}
+
 static uint64_t extractValueRISCV(uint64_t Type, uint64_t Contents,
                                   uint64_t PC) {
   switch (Type) {
@@ -556,6 +564,8 @@ static uint64_t extractValueRISCV(uint64_t Type, uint64_t Contents,
     return extractUImmRISCV(Contents);
   case ELF::R_RISCV_BRANCH:
     return extractBImmRISCV(Contents);
+  case ELF::R_RISCV_XL_BMRK_BRANCH:
+    return extractXLBmrkImmRISCV(Contents);
   case ELF::R_RISCV_GOT_HI20:
   case ELF::R_RISCV_TLS_GOT_HI20:
     // We need to know the exact address of the GOT entry so we extract the
@@ -761,6 +771,7 @@ static bool isPCRelativeRISCV(uint64_t Type) {
   case ELF::R_RISCV_CALL:
   case ELF::R_RISCV_CALL_PLT:
   case ELF::R_RISCV_BRANCH:
+  case ELF::R_RISCV_XL_BMRK_BRANCH:
   case ELF::R_RISCV_GOT_HI20:
   case ELF::R_RISCV_PCREL_HI20:
   case ELF::R_RISCV_PCREL_LO12_I:

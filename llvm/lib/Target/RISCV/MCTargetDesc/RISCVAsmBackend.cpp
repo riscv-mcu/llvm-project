@@ -79,6 +79,7 @@ RISCVAsmBackend::getFixupKindInfo(MCFixupKind Kind) const {
       {"fixup_riscv_tls_gd_hi20", 12, 20, MCFixupKindInfo::FKF_IsPCRel},
       {"fixup_riscv_jal", 12, 20, MCFixupKindInfo::FKF_IsPCRel},
       {"fixup_riscv_branch", 0, 32, MCFixupKindInfo::FKF_IsPCRel},
+      {"fixup_riscv_xl_bmrk_branch", 0, 32, MCFixupKindInfo::FKF_IsPCRel},
       {"fixup_riscv_rvc_jump", 2, 11, MCFixupKindInfo::FKF_IsPCRel},
       {"fixup_riscv_rvc_branch", 0, 16, MCFixupKindInfo::FKF_IsPCRel},
       {"fixup_riscv_call", 0, 64, MCFixupKindInfo::FKF_IsPCRel},
@@ -169,6 +170,10 @@ bool RISCVAsmBackend::fixupNeedsRelaxationAdvanced(
     // For conditional branch instructions the immediate must be
     // in the range [-4096, 4095].
     return !isInt<13>(Offset);
+  case RISCV::fixup_riscv_xl_bmrk_branch:
+    // For conditional branch instructions the immediate must be
+    // in the range [-2048, 2047].
+    return !isInt<12>(Offset);
   }
 }
 
@@ -472,6 +477,19 @@ static uint64_t adjustFixupValue(const MCFixup &Fixup, uint64_t Value,
     // Inst{11-8} = Lo4;
     // Inst{7} = Hi1;
     Value = (Sbit << 31) | (Mid6 << 25) | (Lo4 << 8) | (Hi1 << 7);
+    return Value;
+  }
+  case RISCV::fixup_riscv_xl_bmrk_branch: {
+    if (!isInt<12>(Value))
+      Ctx.reportError(Fixup.getLoc(), "fixup value out of range");
+    if (Value & 0x1)
+      Ctx.reportError(Fixup.getLoc(), "fixup value must be 2-byte aligned");
+    // Need to extract imm[10:5], imm[4:1], imm[11] from the 12-bit
+    // Value.
+    unsigned Sbit = (Value >> 11) & 0x1;
+    unsigned Mid6 = (Value >> 5) & 0x3f;
+    unsigned Lo4 = (Value >> 1) & 0xf;
+    Value = (Mid6 << 25) | (Lo4 << 8) | (Sbit << 7);
     return Value;
   }
   case RISCV::fixup_riscv_call:

@@ -26,6 +26,8 @@ const char *getEdgeKindName(Edge::Kind K) {
     return "R_RISCV_64";
   case R_RISCV_BRANCH:
     return "R_RISCV_BRANCH";
+  case R_RISCV_XL_BMRK_BRANCH:
+    return "R_RISCV_XL_BMRK_BRANCH";
   case R_RISCV_JAL:
     return "R_RISCV_JAL";
   case R_RISCV_CALL:

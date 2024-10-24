@@ -55,6 +55,8 @@ enum Fixups {
   fixup_riscv_jal,
   // 12-bit fixup for symbol references in the branch instructions
   fixup_riscv_branch,
+  // 11-bit fixup for symbol references in the xl_bmrk branch instructions
+  fixup_riscv_xl_bmrk_branch,
   // 11-bit fixup for symbol references in the compressed jump instruction
   fixup_riscv_rvc_jump,
   // 8-bit fixup for symbol references in the compressed branch instruction

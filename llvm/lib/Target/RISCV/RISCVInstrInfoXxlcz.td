@@ -94,7 +94,7 @@ let Predicates = [HasVendorXxlczslet, IsRV32],
 let DecoderNamespace = "Xxlczbmrk" in {
   class XxlczBmrkB<bit F, bits<3> funct3, string opcodestr>
     : RVInst<(outs), (ins GPR:$rs1, GPR:$rs2, simm12_lsb0:$imm11), 
-              opcodestr, "$rs1, $rs2, $imm11", [], InstFormatOther> {
+              opcodestr, "$rs1, $rs2, $imm11", [], InstFormatXLBmrk> {
     bits<5> rs1;
     bits<5> rs2;
     bits<11> imm11;
