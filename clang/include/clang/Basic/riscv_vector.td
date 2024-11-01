@@ -2697,3 +2697,5 @@ let UnMaskedPolicyScheme = HasPolicyOperand, HasMasked = false in {
     defm vsm3me  : RVVOutOp1BuiltinSet<"vsm3me", "i", [["vv", "Uv", "UvUvUv"]]>;
   }
 }
+
+include "riscv_xxlvqmacc.td"

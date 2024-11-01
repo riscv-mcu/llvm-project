@@ -28,14 +28,67 @@ class XxlvqmaccInstr<bits<6> funct6, bits<3> funct3, string opcodestr>
   let Inst{6-0} = OPC_CUSTOM_3.Value;
 
   let Uses = [VTYPE, VL];
-  let RVVConstraint = VMConstraint;
+  let RVVConstraint = NoConstraint;
 }
 }
 
 let Predicates = [HasVendorXxlvqmacc], DecoderNamespace = "Xxlvqmacc" in {
-  def VQMACCU  : XxlvqmaccInstr<0b101110, 0b001, "xl.vqmaccu.vv">;
-  def VQMACC   : XxlvqmaccInstr<0b101111, 0b001, "xl.vqmacc.vv">;
-  def VQMACCUS : XxlvqmaccInstr<0b111101, 0b001, "xl.vqmaccus.vv">;
-  def VQMACCSU : XxlvqmaccInstr<0b111110, 0b001, "xl.vqmaccsu.vv">;
+let vm = 1 in {
+  def XL_VQMACCU_4x4x4  : XxlvqmaccInstr<0b101110, 0b001, "xl.vqmaccu.vv">;
+  def XL_VQMACC_4x4x4   : XxlvqmaccInstr<0b101111, 0b001, "xl.vqmacc.vv">;
+  def XL_VQMACCUS_4x4x4 : XxlvqmaccInstr<0b111101, 0b001, "xl.vqmaccus.vv">;
+  def XL_VQMACCSU_4x4x4 : XxlvqmaccInstr<0b111110, 0b001, "xl.vqmaccsu.vv">;
+}
+}
+
+multiclass VPseudoXlVMACC<string mx, VReg vd_type, VReg vs2_type,
+                              string Constraint = ""> {
+  def "Pseudo" # NAME # "_" # mx
+      : VPseudoTernaryNoMaskWithPolicy<vd_type, V_M1.vrclass, vs2_type, Constraint>;
+}
+
+multiclass VPseudoXlVQMACC<string Constraint = ""> {
+  foreach i = 1-4 in
+    let VLMul = MxListW[i].value in
+    defm NAME : VPseudoXlVMACC<MxListW[i].MX,  MxListVF4[i].vrclass, MxListW[i].vrclass, Constraint>;
+}
+
+let Predicates = [HasVendorXxlvqmacc], DecoderNamespace = "Xxlvqmacc" in {
+  defm XL_VQMACCU_4x4x4  : VPseudoXlVQMACC;
+  defm XL_VQMACC_4x4x4   : VPseudoXlVQMACC;
+  defm XL_VQMACCUS_4x4x4 : VPseudoXlVQMACC;
+  defm XL_VQMACCSU_4x4x4 : VPseudoXlVQMACC;
+}
+
+multiclass VPatXlVMACC<string intrinsic, string instruction, string kind,
+                     list<VTypeInfoToWide> info_pairs, ValueType vec_m1> {
+  foreach pair = info_pairs in {
+    defvar VdInfo = pair.Wti;
+    defvar Vs2Info = pair.Vti;
+    let Predicates = [HasVInstructions] in
+    def : VPatTernaryNoMaskWithPolicy<"int_riscv_xl_" # intrinsic,
+                                      "Pseudo" # instruction, kind, VdInfo.Vector,
+                                      vec_m1, Vs2Info.Vector,
+                                      Vs2Info.Log2SEW, Vs2Info.LMul,
+                                      VdInfo.RegClass, VR, Vs2Info.RegClass>;
+  }
+}
+
+defset list<VTypeInfoToWide> VQMACCInfoPairs = {
+  def : VTypeInfoToWide<VI8MF4, VI32M1>;
+  def : VTypeInfoToWide<VI8MF2, VI32M2>;
+  def : VTypeInfoToWide<VI8M1, VI32M4>;
+  def : VTypeInfoToWide<VI8M2, VI32M8>;
+}
+
+multiclass VPatXlVQMACC<string intrinsic, string instruction, string kind>
+    : VPatXlVMACC<intrinsic, instruction, kind, VQMACCInfoPairs, vint8m1_t>;
+
+
+let Predicates = [HasVendorXxlvqmacc] in {
+  defm : VPatXlVQMACC<"vqmaccu_4x4x4", "XL_VQMACCU", "4x4x4">;
+  defm : VPatXlVQMACC<"vqmacc_4x4x4", "XL_VQMACC", "4x4x4">;
+  defm : VPatXlVQMACC<"vqmaccus_4x4x4", "XL_VQMACCUS", "4x4x4">;
+  defm : VPatXlVQMACC<"vqmaccsu_4x4x4", "XL_VQMACCSU", "4x4x4">;
 }
 

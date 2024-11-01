@@ -211,6 +211,7 @@ void RISCVIntrinsicManagerImpl::ConstructRVVIntrinsics(
       {"xsfvfwmaccqqq", RVV_REQ_Xsfvfwmaccqqq},
       {"xsfvqmaccdod", RVV_REQ_Xsfvqmaccdod},
       {"xsfvqmaccqoq", RVV_REQ_Xsfvqmaccqoq},
+      {"xxlvqmacc", RVV_REQ_Xxlvqmacc},
       {"zvbb", RVV_REQ_Zvbb},
       {"zvbc", RVV_REQ_Zvbc},
       {"zvkb", RVV_REQ_Zvkb},

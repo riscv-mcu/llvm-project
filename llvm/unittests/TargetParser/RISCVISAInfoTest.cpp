@@ -1023,6 +1023,7 @@ R"(All available -march extensions for RISC-V
     xtheadvdot           1.0
     xventanacondops      1.0
     xwchc                2.2
+    xxlvqmacc            1.0
 
 Experimental extensions
     zicfilp              1.0       This is a long dummy description
