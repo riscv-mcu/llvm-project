@@ -12,8 +12,8 @@
 
 let hasSideEffects = 0, mayLoad = 0, mayStore = 0 in {
 class XxlvqmaccInstr<bits<6> funct6, bits<3> funct3, string opcodestr>
-    : RVInst<(outs VR:$vd), (ins VR:$vs2, VR:$vs1, VMaskOp:$vm),
-              opcodestr, "$vd, $vs2, $vs1$vm", [], InstFormatR> {
+    : RVInst<(outs VR:$vd), (ins VR:$vs1, VR:$vs2, VMaskOp:$vm),
+              opcodestr, "$vd, $vs1, $vs2$vm", [], InstFormatR> {
   bits<5> vs2;
   bits<5> vs1;
   bits<5> vd;
