@@ -466,6 +466,8 @@ def : SysReg<"mstack_bound", 0x7c7>;
 def : SysReg<"mstack_base", 0x7c8>;
 def : SysReg<"mdcause", 0x7c9>;
 def : SysReg<"mmisc_ctl", 0x7d0>;
+let AltName = "mfp16mode" in
+def : SysReg<"mmisc_ctl1", 0x7e2>;
 def : SysReg<"msavestatus", 0x7d6>;
 def : SysReg<"msaveepc1", 0x7d7>;
 def : SysReg<"msaveepc2", 0x7d9>;
@@ -524,8 +526,6 @@ def : SysReg<"ccm_ubeginaddr", 0x4cb>;
 def : SysReg<"ccm_ucommand", 0x4cc>;
 def : SysReg<"ccm_udata", 0x4cd>;
 def : SysReg<"ccm_fpipe", 0x4cf>;
-//VPU
-def : SysReg<"mfp16mode", 0x7e2>;
 //PPI
 def : SysReg<"mppicfg_info", 0x7f0>;
 //FIO
