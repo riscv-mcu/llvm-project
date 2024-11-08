@@ -128,6 +128,7 @@ on support follow.
      ``Smaia``         Supported
      ``Smcdeleg``      Supported
      ``Smcsrind``      Supported
+     ``Smdbltrp``      Supported
      ``Smepmp``        Supported
      ``Smrnmi``        Assembly Support
      ``Smstateen``     Assembly Support
@@ -137,6 +138,7 @@ on support follow.
      ``Sscofpmf``      Assembly Support
      ``Sscounterenw``  Assembly Support (`See note <#riscv-profiles-extensions-note>`__)
      ``Sscsrind``      Supported
+     ``Ssdbltrp``      Supported
      ``Ssstateen``     Assembly Support (`See note <#riscv-profiles-extensions-note>`__)
      ``Ssstrict``      Assembly Support (`See note <#riscv-profiles-extensions-note>`__)
      ``Sstc``          Assembly Support
