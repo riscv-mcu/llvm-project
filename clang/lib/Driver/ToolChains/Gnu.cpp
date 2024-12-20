@@ -1889,8 +1889,8 @@ static void findRISCVBareMetalMultilibs(const Driver &D,
       {"rv32imafd_zca_zcb_zcd_zcf_zba_zbb_zbs_xxldsp", "ilp32d"}, {"rv32imafd_zca_zcb_zcf_zcmp_zba_zbb_zbs_xxldsp", "ilp32d"},
       {"rv64imac", "lp64"}, {"rv64imafc", "lp64f"}, {"rv64imafdc", "lp64d"}, {"rv64imac_zba_zbb_zbs", "lp64"},
       {"rv64imafc_zba_zbb_zbs", "lp64f"}, {"rv64imafdc_zba_zbb_zbs", "lp64d"}, {"rv64ima_zca_zcb_zcmp", "lp64"}, {"rv64imaf_zca_zcb_zcmp", "lp64f"},
-      {"rv64imafd_zca_zcb_zcd", "lp64d"}, {"rv64ima_zca_zcb_zcmp_zba_zbb_zbs", "lp64"},
-      {"rv64imaf_zca_zcb_zcmp_zba_zbb_zbs", "lp64f"}, {"rv64imafd_zca_zcb_zcd_zba_zbb_zbs", "lp64d"}};
+      {"rv64imafd_zca_zcb_zcd", "lp64d"}, {"rv64imafd_zca_zcb_zcmp", "lp64d"}, {"rv64ima_zca_zcb_zcmp_zba_zbb_zbs", "lp64"},
+      {"rv64imaf_zca_zcb_zcmp_zba_zbb_zbs", "lp64f"}, {"rv64imafd_zca_zcb_zcd_zba_zbb_zbs", "lp64d"}, {"rv64imafd_zca_zcb_zcmp_zba_zbb_zbs", "lp64d"}};
 
   std::vector<MultilibBuilder> Ms;
   for (auto Element : RISCVMultilibSet) {
