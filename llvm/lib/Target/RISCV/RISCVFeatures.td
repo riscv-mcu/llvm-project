@@ -1403,6 +1403,14 @@ def HasVendorXxlvqmacc
       AssemblerPredicate<(all_of FeatureVendorXxlvqmacc),
                          "'Xxlvqmacc' (Nuclei Int8 Matrix Multiplication Instructions (4-by-4 and 4-by-4))">;
 
+def FeatureVendorXxlfbf
+    : RISCVExtension<"xxlfbf", 1, 0,
+                     "'Xxlfbf' (Nuclei Scalar Bf16 Instructions)",
+                     [FeatureStdExtZfh]>;
+def HasVendorXxlfbf
+    : Predicate<"Subtarget->hasVendorXxlfbf()">,
+      AssemblerPredicate<(all_of FeatureVendorXxlfbf),
+                         "'Xxlfbf' (Nuclei Scalar Bf16 Instructions)">;
 
 //===----------------------------------------------------------------------===//
 // LLVM specific features and extensions

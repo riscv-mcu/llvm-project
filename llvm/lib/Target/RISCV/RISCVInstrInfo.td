@@ -2082,6 +2082,7 @@ include "RISCVInstrInfoZalasr.td"
 include "RISCVInstrInfoF.td"
 include "RISCVInstrInfoD.td"
 include "RISCVInstrInfoZfh.td"
+include "RISCVInstrInfoXxlfbf.td"
 include "RISCVInstrInfoZfbfmin.td"
 include "RISCVInstrInfoZfa.td"
 

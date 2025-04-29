@@ -371,6 +371,7 @@ public:
 
     Type *ScalarTy = Ty->getScalarType();
     if ((ScalarTy->isHalfTy() && ST->hasStdExtZfhmin()) ||
+        (ScalarTy->isBFloatTy() && ST->hasVendorXxlfbf())||
         (ScalarTy->isFloatTy() && ST->hasStdExtF()) ||
         (ScalarTy->isDoubleTy() && ST->hasStdExtD())) {
       return RISCVRegisterClass::FPRRC;

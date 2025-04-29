@@ -126,6 +126,8 @@ RISCVTargetLowering::RISCVTargetLowering(const TargetMachine &TM,
     addRegisterClass(MVT::f16, &RISCV::FPR16RegClass);
   if (Subtarget.hasStdExtZfbfmin())
     addRegisterClass(MVT::bf16, &RISCV::FPR16RegClass);
+  if (Subtarget.hasVendorXxlfbf())
+    addRegisterClass(MVT::bf16, &RISCV::FPR16RegClass);
   if (Subtarget.hasStdExtF())
     addRegisterClass(MVT::f32, &RISCV::FPR32RegClass);
   if (Subtarget.hasStdExtD())
@@ -461,7 +463,28 @@ RISCVTargetLowering::RISCVTargetLowering(const TargetMachine &TM,
       ISD::FTRUNC,       ISD::FRINT,         ISD::FROUND,
       ISD::FROUNDEVEN,   ISD::SELECT};
 
-  if (Subtarget.hasStdExtZfbfmin()) {
+  if (Subtarget.hasVendorXxlfbf()) {
+    setOperationAction(ISD::BITCAST, MVT::i16, Custom);
+    setOperationAction(ISD::BITCAST, MVT::bf16, Custom);
+    setOperationAction(ISD::FP_ROUND, MVT::bf16, Legal);
+    setOperationAction(ISD::FP_EXTEND, MVT::f32, Legal);
+    setOperationAction(ISD::FP_EXTEND, MVT::f64, Legal);
+    setOperationAction(ISD::ConstantFP, MVT::bf16, Expand);
+    setOperationAction(ISD::FMA, MVT::bf16, Legal);
+    setOperationAction(ISD::STRICT_FMA, MVT::bf16, Legal);
+    setOperationAction(FPLegalNodeTypes, MVT::bf16, Legal);
+    setOperationAction(FPRndMode, MVT::bf16,
+                         Subtarget.hasStdExtZfa() ? Legal : Custom);
+    setOperationAction(ISD::SELECT, MVT::bf16, Custom);
+    setOperationAction(ISD::IS_FPCLASS, MVT::bf16, Custom);
+    setCondCodeAction(FPCCToExpand, MVT::bf16, Expand);
+    setOperationAction(ISD::SELECT_CC, MVT::bf16, Expand);
+    setOperationAction(ISD::BR_CC, MVT::bf16, Expand);
+    setOperationAction({ISD::FMAXIMUM, ISD::FMINIMUM}, MVT::bf16,
+                       Subtarget.hasStdExtZfa() ? Legal : Custom);
+  }
+
+  if (Subtarget.hasStdExtZfbfmin()&&!Subtarget.hasVendorXxlfbf()) {
     setOperationAction(ISD::BITCAST, MVT::i16, Custom);
     setOperationAction(ISD::BITCAST, MVT::bf16, Custom);
     setOperationAction(ISD::FP_ROUND, MVT::bf16, Custom);
@@ -2261,7 +2284,7 @@ bool RISCVTargetLowering::isFPImmLegal(const APFloat &Imm, EVT VT,
   else if (VT == MVT::f64)
     IsLegalVT = Subtarget.hasStdExtDOrZdinx();
   else if (VT == MVT::bf16)
-    IsLegalVT = Subtarget.hasStdExtZfbfmin();
+    IsLegalVT = Subtarget.hasStdExtZfbfmin()||Subtarget.hasVendorXxlfbf();
 
   if (!IsLegalVT)
     return false;
@@ -6306,7 +6329,7 @@ SDValue RISCVTargetLowering::LowerOperation(SDValue Op,
       return FPConv;
     }
     if (VT == MVT::bf16 && Op0VT == MVT::i16 &&
-        Subtarget.hasStdExtZfbfmin()) {
+        (Subtarget.hasStdExtZfbfmin() || Subtarget.hasVendorXxlfbf())) {
       SDValue NewOp0 = DAG.getNode(ISD::ANY_EXTEND, DL, XLenVT, Op0);
       SDValue FPConv = DAG.getNode(RISCVISD::FMV_H_X, DL, MVT::bf16, NewOp0);
       return FPConv;
@@ -12228,7 +12251,7 @@ void RISCVTargetLowering::ReplaceNodeResults(SDNode *N,
       // convert.
       if ((Op0.getValueType() == MVT::f16 &&
            !Subtarget.hasStdExtZfhOrZhinx()) ||
-          Op0.getValueType() == MVT::bf16)
+          (Op0.getValueType() == MVT::bf16 && !Subtarget.hasVendorXxlfbf()))
         Op0 = DAG.getNode(ISD::FP_EXTEND, DL, MVT::f32, Op0);
 
       unsigned Opc = IsSigned ? RISCVISD::FCVT_W_RV64 : RISCVISD::FCVT_WU_RV64;
@@ -12610,7 +12633,7 @@ void RISCVTargetLowering::ReplaceNodeResults(SDNode *N,
       SDValue FPConv = DAG.getNode(RISCVISD::FMV_X_ANYEXTH, DL, XLenVT, Op0);
       Results.push_back(DAG.getNode(ISD::TRUNCATE, DL, MVT::i16, FPConv));
     } else if (VT == MVT::i16 && Op0VT == MVT::bf16 &&
-               Subtarget.hasStdExtZfbfmin()) {
+               (Subtarget.hasStdExtZfbfmin() || Subtarget.hasVendorXxlfbf())) {
       SDValue FPConv = DAG.getNode(RISCVISD::FMV_X_ANYEXTH, DL, XLenVT, Op0);
       Results.push_back(DAG.getNode(ISD::TRUNCATE, DL, MVT::i16, FPConv));
     } else if (VT == MVT::i32 && Op0VT == MVT::f32 && Subtarget.is64Bit() &&
@@ -18241,6 +18264,7 @@ static bool isSelectPseudo(MachineInstr &MI) {
   case RISCV::Select_GPR_Using_CC_Imm:
   case RISCV::Select_FPR16_Using_CC_GPR:
   case RISCV::Select_FPR16INX_Using_CC_GPR:
+  case RISCV::Select_FPRbf16_Using_CC_GPR:
   case RISCV::Select_FPR32_Using_CC_GPR:
   case RISCV::Select_FPR32INX_Using_CC_GPR:
   case RISCV::Select_FPR64_Using_CC_GPR:
@@ -18760,6 +18784,7 @@ RISCVTargetLowering::EmitInstrWithCustomInserter(MachineInstr &MI,
   case RISCV::Select_GPR_Using_CC_Imm:
   case RISCV::Select_FPR16_Using_CC_GPR:
   case RISCV::Select_FPR16INX_Using_CC_GPR:
+  case RISCV::Select_FPRbf16_Using_CC_GPR:
   case RISCV::Select_FPR32_Using_CC_GPR:
   case RISCV::Select_FPR32INX_Using_CC_GPR:
   case RISCV::Select_FPR64_Using_CC_GPR:
@@ -21301,6 +21326,8 @@ bool RISCVTargetLowering::isFMAFasterThanFMulAndFAdd(const MachineFunction &MF,
   case MVT::f16:
     return VT.isVector() ? Subtarget.hasVInstructionsF16()
                          : Subtarget.hasStdExtZfhOrZhinx();
+  case MVT::bf16:
+    return Subtarget.hasVendorXxlfbf();
   case MVT::f32:
     return Subtarget.hasStdExtFOrZfinx();
   case MVT::f64:

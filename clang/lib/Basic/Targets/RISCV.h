@@ -48,6 +48,7 @@ public:
     HasRISCVVTypes = true;
     MCountName = "_mcount";
     HasFloat16 = true;
+    HasBFloat16 = true;
     HasStrictFP = true;
   }
 

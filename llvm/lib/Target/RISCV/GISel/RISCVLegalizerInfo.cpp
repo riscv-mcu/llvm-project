@@ -36,6 +36,7 @@ static LegalityPredicate typeIsScalarFPArith(unsigned TypeIdx,
   return [=, &ST](const LegalityQuery &Query) {
     return Query.Types[TypeIdx].isScalar() &&
            ((ST.hasStdExtZfh() && Query.Types[TypeIdx].getSizeInBits() == 16) ||
+            (ST.hasVendorXxlfbf() && Query.Types[TypeIdx].getSizeInBits() == 16) ||
             (ST.hasStdExtF() && Query.Types[TypeIdx].getSizeInBits() == 32) ||
             (ST.hasStdExtD() && Query.Types[TypeIdx].getSizeInBits() == 64));
   };
