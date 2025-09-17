@@ -26,6 +26,7 @@
 #include "clang/Driver/Tool.h"
 #include "clang/Driver/ToolChain.h"
 #include "llvm/ADT/StringSet.h"
+#include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/Twine.h"
 #include "llvm/Option/ArgList.h"
 #include "llvm/Support/CodeGen.h"
@@ -1844,22 +1845,42 @@ selectRISCVMultilib(const MultilibSet &RISCVMultilibSet, StringRef Arch,
   return false;
 }
 
-static std::string FixMarchStr(StringRef marchStr) {
-  size_t pos = marchStr.find('_');
-  if (pos != llvm::StringRef::npos) {
-    std::pair<llvm::StringRef, llvm::StringRef> parts = marchStr.split('_');
-    if (parts.first.contains('a')) {
-      return (parts.first.str() + "_zaamo_zalrsc_" + parts.second.str());
-    } else {
-      return marchStr.str();
+static std::string splitAndProcessMarch(StringRef marchStr) {
+    SmallVector<StringRef, 8> parts;
+    marchStr.split(parts, '_');
+    
+    std::string result;
+    for (size_t i = 0; i < parts.size(); ++i) {
+        StringRef part = parts[i];
+        if (i > 0) {
+            result += "_";
+        }
+        if (part == "zdinx") {
+            result += "zfinx_zdinx";
+        } else {
+            result += part.str();
+        }
     }
-  }
-  if (marchStr.contains('a')) {
-    return marchStr.str() + "_zaamo_zalrsc";
-  }
-  return marchStr.str();
+    return result;
 }
 
+static std::string FixMarchStr(StringRef marchStr) {
+    std::string processedMarch = splitAndProcessMarch(marchStr);
+    StringRef processedRef(processedMarch);
+
+    size_t pos = processedRef.find('_');
+    if (pos != StringRef::npos) {
+        std::pair<StringRef, StringRef> parts = processedRef.split('_');
+        if (parts.first.contains('a')) {
+            return parts.first.str() + "_zaamo_zalrsc_" + parts.second.str();
+        }
+    } else {
+        if (processedRef.contains('a')) {
+            return processedMarch + "_zaamo_zalrsc";
+        }
+    }
+    return processedMarch;
+}
 static void findRISCVBareMetalMultilibs(const Driver &D,
                                         const llvm::Triple &TargetTriple,
                                         StringRef Path, const ArgList &Args,
@@ -1872,13 +1893,14 @@ static void findRISCVBareMetalMultilibs(const Driver &D,
   // currently only support the set of multilibs like riscv-gnu-toolchain does.
   // TODO: support MULTILIB_REUSE
   constexpr RiscvMultilib RISCVMultilibSet[] = {
-      {"rv32ec", "ilp32e"}, {"rv32eac", "ilp32e"}, {"rv32emc", "ilp32e"}, {"rv32ec_zmmul", "ilp32e"}, {"rv32emac", "ilp32e"},
-      {"rv32ic", "ilp32"}, {"rv32iac", "ilp32"}, {"rv32imc", "ilp32"}, {"rv32ic_zmmul", "ilp32"}, {"rv32e_zca_zcb_zcmp", "ilp32e"},
-      {"rv32em_zca_zcb_zcmp", "ilp32e"}, {"rv32e_zmmul_zca_zcb_zcmp", "ilp32e"}, {"rv32ea_zca_zcb_zcmp", "ilp32e"},
-      {"rv32ema_zca_zcb_zcmp", "ilp32e"}, {"rv32i_zca_zcb_zcmp", "ilp32"}, {"rv32ia_zca_zcb_zcmp", "ilp32"},
-      {"rv32im_zca_zcb_zcmp", "ilp32"}, {"rv32i_zmmul_zca_zcb_zcmp", "ilp32"},{"rv32imac", "ilp32"},
+      {"rv32ec", "ilp32e"}, {"rv32eac", "ilp32e"}, {"rv32emc", "ilp32e"}, {"rv32emc_zfinx", "ilp32e"}, {"rv32emc_zdinx", "ilp32e"}, {"rv32ec_zmmul", "ilp32e"}, {"rv32emac", "ilp32e"}, {"rv32emac_zfinx", "ilp32e"}, {"rv32emac_zdinx", "ilp32e"}, 
+      {"rv32ic", "ilp32"}, {"rv32iac", "ilp32"}, {"rv32imc", "ilp32"}, {"rv32imc_zfinx", "ilp32"}, {"rv32imc_zdinx", "ilp32"}, {"rv32ic_zmmul", "ilp32"}, {"rv32e_zca_zcb_zcmp", "ilp32e"},
+      {"rv32em_zca_zcb_zcmp", "ilp32e"}, {"rv32em_zfinx_zca_zcb_zcmp", "ilp32e"}, {"rv32em_zdinx_zca_zcb_zcmp", "ilp32e"}, {"rv32e_zmmul_zca_zcb_zcmp", "ilp32e"}, {"rv32ea_zca_zcb_zcmp", "ilp32e"},
+      {"rv32ema_zca_zcb_zcmp", "ilp32e"}, {"rv32ema_zfinx_zca_zcb_zcmp", "ilp32e"}, 
+      {"rv32ema_zdinx_zca_zcb_zcmp", "ilp32e"}, {"rv32i_zca_zcb_zcmp", "ilp32"}, {"rv32ia_zca_zcb_zcmp", "ilp32"},
+      {"rv32im_zca_zcb_zcmp", "ilp32"}, {"rv32im_zfinx_zca_zcb_zcmp", "ilp32"}, {"rv32im_zdinx_zca_zcb_zcmp", "ilp32"}, {"rv32i_zmmul_zca_zcb_zcmp", "ilp32"},{"rv32imac", "ilp32"}, {"rv32imac_zfinx", "ilp32"}, {"rv32imac_zdinx", "ilp32"}, 
       {"rv32imafc", "ilp32f"}, {"rv32imafdc", "ilp32d"}, {"rv32imac_zba_zbb_zbs", "ilp32"}, {"rv32imafc_zba_zbb_zbs", "ilp32f"},
-      {"rv32imafdc_zba_zbb_zbs", "ilp32d"}, {"rv32ima_zca_zcb_zcmp", "ilp32"}, {"rv32imaf_zca_zcb_zcf_zcmp", "ilp32f"},
+      {"rv32imafdc_zba_zbb_zbs", "ilp32d"}, {"rv32ima_zca_zcb_zcmp", "ilp32"}, {"rv32ima_zfinx_zca_zcb_zcmp", "ilp32"}, {"rv32ima_zdinx_zca_zcb_zcmp", "ilp32"}, {"rv32imaf_zca_zcb_zcf_zcmp", "ilp32f"},
       {"rv32imafd_zca_zcb_zcf_zcmp", "ilp32d"}, {"rv32imafd_zca_zcb_zcd_zcf", "ilp32d"}, {"rv32ima_zca_zcb_zcmp_zba_zbb_zbs", "ilp32"},
       {"rv32imaf_zca_zcb_zcf_zcmp_zba_zbb_zbs", "ilp32f"}, {"rv32imafd_zca_zcb_zcd_zcf_zba_zbb_zbs", "ilp32d"},
       {"rv32imafd_zca_zcb_zcf_zcmp_zba_zbb_zbs", "ilp32d"}, {"rv32imac_xxldsp", "ilp32"}, {"rv32imafc_xxldsp", "ilp32f"},
@@ -1887,7 +1909,7 @@ static void findRISCVBareMetalMultilibs(const Driver &D,
       {"rv32imafd_zca_zcb_zcd_zcf_xxldsp", "ilp32d"}, {"rv32imafd_zca_zcb_zcf_zcmp_xxldsp", "ilp32d"},
       {"rv32ima_zca_zcb_zcmp_zba_zbb_zbs_xxldsp", "ilp32"}, {"rv32imaf_zca_zcb_zcf_zcmp_zba_zbb_zbs_xxldsp", "ilp32f"},
       {"rv32imafd_zca_zcb_zcd_zcf_zba_zbb_zbs_xxldsp", "ilp32d"}, {"rv32imafd_zca_zcb_zcf_zcmp_zba_zbb_zbs_xxldsp", "ilp32d"},
-      {"rv64imac", "lp64"}, {"rv64imafc", "lp64f"}, {"rv64imafdc", "lp64d"}, {"rv64imac_zba_zbb_zbs", "lp64"},
+      {"rv64imac", "lp64"}, {"rv64imac_zfinx", "lp64"}, {"rv64imac_zdinx", "lp64"}, {"rv64imafc", "lp64f"}, {"rv64imafdc", "lp64d"}, {"rv64imac_zba_zbb_zbs", "lp64"},
       {"rv64imafc_zba_zbb_zbs", "lp64f"}, {"rv64imafdc_zba_zbb_zbs", "lp64d"}, {"rv64ima_zca_zcb_zcmp", "lp64"}, {"rv64imaf_zca_zcb_zcmp", "lp64f"},
       {"rv64imafd_zca_zcb_zcd", "lp64d"}, {"rv64imafd_zca_zcb_zcmp", "lp64d"}, {"rv64ima_zca_zcb_zcmp_zba_zbb_zbs", "lp64"},
       {"rv64imaf_zca_zcb_zcmp_zba_zbb_zbs", "lp64f"}, {"rv64imafd_zca_zcb_zcd_zba_zbb_zbs", "lp64d"}, {"rv64imafd_zca_zcb_zcmp_zba_zbb_zbs", "lp64d"}};
