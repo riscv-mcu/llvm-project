@@ -1516,6 +1516,36 @@ def TuneSiFive7 : SubtargetFeature<"sifive7", "RISCVProcFamily", "SiFive7",
                                    [TuneNoDefaultUnroll,
                                     TuneShortForwardBranchOpt]>;
 
+def TuneNuclei100 : SubtargetFeature<"nuclei100", "RISCVProcFamily", "Nuclei100",
+                                   "Nuclei 100-Series processors",
+                                   [TuneNoDefaultUnroll,
+                                    TuneShortForwardBranchOpt]>;
+
+def TuneNuclei200 : SubtargetFeature<"nuclei200", "RISCVProcFamily", "Nuclei200",
+                                   "Nuclei 200-Series processors",
+                                   [TuneNoDefaultUnroll,
+                                    TuneShortForwardBranchOpt]>;
+
+def TuneNuclei300 : SubtargetFeature<"nuclei300", "RISCVProcFamily", "Nuclei300",
+                                   "Nuclei 300-Series processors",
+                                   [TuneNoDefaultUnroll,
+                                    TuneShortForwardBranchOpt]>;
+
+def TuneNuclei600 : SubtargetFeature<"nuclei600", "RISCVProcFamily", "Nuclei600",
+                                   "Nuclei 600-Series processors",
+                                   [TuneNoDefaultUnroll,
+                                    TuneShortForwardBranchOpt]>;
+
+def TuneNuclei900 : SubtargetFeature<"nuclei900", "RISCVProcFamily", "Nuclei900",
+                                   "Nuclei 900-Series processors",
+                                   [TuneNoDefaultUnroll,
+                                    TuneShortForwardBranchOpt]>;
+
+def TuneNuclei1000 : SubtargetFeature<"nuclei1000", "RISCVProcFamily", "Nuclei1000",
+                                   "Nuclei 1000-Series processors",
+                                   [TuneNoDefaultUnroll,
+                                    TuneShortForwardBranchOpt]>;
+
 def TuneVentanaVeyron : SubtargetFeature<"ventana-veyron", "RISCVProcFamily", "VentanaVeyron",
                                          "Ventana Veyron-Series processors">;
 

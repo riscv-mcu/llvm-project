@@ -63,6 +63,12 @@ public:
     Others,
     SiFive7,
     VentanaVeyron,
+    Nuclei100,
+    Nuclei200,
+    Nuclei300,
+    Nuclei600,
+    Nuclei900,
+    Nuclei1000,
   };
   // clang-format on
 private:

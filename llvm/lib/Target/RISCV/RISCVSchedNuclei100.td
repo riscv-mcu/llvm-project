@@ -1,0 +1,266 @@
+//==- RISCVSchedNuclei100.td - Nuclei100 Scheduling Definitions ----*- tablegen -*-=//
+//
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+//
+//===----------------------------------------------------------------------===//
+
+// ===---------------------------------------------------------------------===//
+// The following definitions describe the simpler per-operand machine model.
+// This works with MachineScheduler. See MCSchedule.h for details.
+
+// Nuclei100 machine model for scheduling and other instruction cost heuristics.
+def Nuclei100Model : SchedMachineModel {
+  let MicroOpBufferSize = 0; // Nuclei100 is in-order.
+  let IssueWidth = 1;        // 1 micro-op is dispatched per cycle.
+  let LoadLatency = 3;       // rv32:3  rv64:2
+  let MispredictPenalty = 3;
+  let CompleteModel = false;
+  let UnsupportedFeatures = [HasStdExtZbkb, HasStdExtZbkc, HasStdExtZbkx,
+                             HasStdExtZcmt, HasStdExtZknd, HasStdExtZkne,
+                             HasStdExtZknh, HasStdExtZksed, HasStdExtZksh,
+                             HasStdExtZkr, HasVInstructions, HasVInstructionsI64,HasVendorXxldspn3x];
+}
+
+//===----------------------------------------------------------------------===//
+// Define each kind of processor resource and number available.
+
+// Modeling each pipeline as a ProcResource using the BufferSize = 0 since
+// Nuclei100 is in-order.
+
+let BufferSize = 0 in {
+def Nuclei100UnitALU        : ProcResource<1>; // Int ALU
+def Nuclei100UnitIMul       : ProcResource<1>; // Int Multiply
+def Nuclei100UnitMem        : ProcResource<1>; // Load/Store
+def Nuclei100UnitB          : ProcResource<1>; // Branch
+
+def Nuclei100UnitFPALU      : ProcResource<1>; // FP ALU
+}
+
+let BufferSize = 1 in {
+def Nuclei100UnitIDiv       : ProcResource<1>; // Int Division
+def Nuclei100UnitFPDivSqrt  : ProcResource<1>; // FP Divide/Sqrt
+}
+
+//===----------------------------------------------------------------------===//
+
+let SchedModel = Nuclei100Model in {
+
+// Branching
+def : WriteRes<WriteJmp, [Nuclei100UnitB]>;
+def : WriteRes<WriteJal, [Nuclei100UnitB]>;
+def : WriteRes<WriteJalr, [Nuclei100UnitB]>;
+
+// Integer arithmetic and logic
+def : WriteRes<WriteIALU32, [Nuclei100UnitALU]>;
+def : WriteRes<WriteIALU, [Nuclei100UnitALU]>;
+def : WriteRes<WriteShiftImm32, [Nuclei100UnitALU]>;
+def : WriteRes<WriteShiftImm, [Nuclei100UnitALU]>;
+def : WriteRes<WriteShiftReg32, [Nuclei100UnitALU]>;
+def : WriteRes<WriteShiftReg, [Nuclei100UnitALU]>;
+
+// Integer multiplication
+let Latency = 4 in {
+def : WriteRes<WriteIMul, [Nuclei100UnitIMul]>;
+def : WriteRes<WriteIMul32, [Nuclei100UnitIMul]>;
+}
+
+// Integer division
+// Worst case latency is used.
+def : WriteRes<WriteIDiv32, [Nuclei100UnitIDiv]> {
+  let Latency = 20;
+  let ReleaseAtCycles = [20];
+}
+def : WriteRes<WriteIDiv, [Nuclei100UnitIDiv]> {
+  let Latency = 34;
+  let ReleaseAtCycles = [34];
+}
+
+// Integer remainder
+def : WriteRes<WriteIRem32, [Nuclei100UnitIDiv]> {
+  let Latency = 34;
+  let ReleaseAtCycles = [34];
+}
+def : WriteRes<WriteIRem, [Nuclei100UnitIDiv]> {
+  let Latency = 33;
+  let ReleaseAtCycles = [33];
+}
+
+// Memory
+def : WriteRes<WriteSTB, [Nuclei100UnitMem]>;
+def : WriteRes<WriteSTH, [Nuclei100UnitMem]>;
+def : WriteRes<WriteSTW, [Nuclei100UnitMem]>;
+def : WriteRes<WriteSTD, [Nuclei100UnitMem]>;
+def : WriteRes<WriteFST32, [Nuclei100UnitMem]>;
+def : WriteRes<WriteFST64, [Nuclei100UnitMem]>;
+
+let Latency = 3 in {
+def : WriteRes<WriteLDB, [Nuclei100UnitMem]>;
+def : WriteRes<WriteLDH, [Nuclei100UnitMem]>;
+}
+
+let Latency = 2 in {
+def : WriteRes<WriteLDW, [Nuclei100UnitMem]>;
+def : WriteRes<WriteLDD, [Nuclei100UnitMem]>;
+def : WriteRes<WriteFLD32, [Nuclei100UnitMem]>;
+def : WriteRes<WriteFLD64, [Nuclei100UnitMem]>;
+
+// Atomic memory
+def : WriteRes<WriteAtomicW, [Nuclei100UnitMem]>;
+def : WriteRes<WriteAtomicD, [Nuclei100UnitMem]>;
+
+def : WriteRes<WriteAtomicLDW, [Nuclei100UnitMem]>;
+def : WriteRes<WriteAtomicLDD, [Nuclei100UnitMem]>;
+}
+
+def : WriteRes<WriteAtomicSTW, [Nuclei100UnitMem]>;
+def : WriteRes<WriteAtomicSTD, [Nuclei100UnitMem]>;
+
+// Single precision.
+let Latency = 4 in {
+def : WriteRes<WriteFAdd32, [Nuclei100UnitFPALU]>;
+def : WriteRes<WriteFSGNJ32, [Nuclei100UnitFPALU]>;
+def : WriteRes<WriteFMinMax32, [Nuclei100UnitFPALU]>;
+}
+
+// Double precision
+let Latency = 6 in {
+def : WriteRes<WriteFAdd64, [Nuclei100UnitFPALU]>;
+def : WriteRes<WriteFSGNJ64, [Nuclei100UnitFPALU]>;
+def : WriteRes<WriteFMinMax64, [Nuclei100UnitFPALU]>;
+}
+
+// Conversions
+let Latency = 2 in {
+def : WriteRes<WriteFCvtI32ToF32, [Nuclei100UnitFPALU]>;
+def : WriteRes<WriteFCvtI32ToF64, [Nuclei100UnitFPALU]>;
+def : WriteRes<WriteFCvtI64ToF32, [Nuclei100UnitFPALU]>;
+def : WriteRes<WriteFCvtI64ToF64, [Nuclei100UnitFPALU]>;
+def : WriteRes<WriteFCvtF32ToI32, [Nuclei100UnitFPALU]>;
+def : WriteRes<WriteFCvtF32ToI64, [Nuclei100UnitFPALU]>;
+def : WriteRes<WriteFCvtF64ToI32, [Nuclei100UnitFPALU]>;
+def : WriteRes<WriteFCvtF64ToI64, [Nuclei100UnitFPALU]>;
+def : WriteRes<WriteFCvtF32ToF64, [Nuclei100UnitFPALU]>;
+def : WriteRes<WriteFCvtF64ToF32, [Nuclei100UnitFPALU]>;
+
+def : WriteRes<WriteFClass32, [Nuclei100UnitFPALU]>;
+def : WriteRes<WriteFClass64, [Nuclei100UnitFPALU]>;
+def : WriteRes<WriteFCmp32, [Nuclei100UnitFPALU]>;
+def : WriteRes<WriteFCmp64, [Nuclei100UnitFPALU]>;
+def : WriteRes<WriteFMovF32ToI32, [Nuclei100UnitFPALU]>;
+def : WriteRes<WriteFMovI32ToF32, [Nuclei100UnitFPALU]>;
+def : WriteRes<WriteFMovF64ToI64, [Nuclei100UnitFPALU]>;
+def : WriteRes<WriteFMovI64ToF64, [Nuclei100UnitFPALU]>;
+}
+
+// FP multiplication
+let Latency = 5 in {
+def : WriteRes<WriteFMul32, [Nuclei100UnitFPALU]>;
+def : WriteRes<WriteFMA32, [Nuclei100UnitFPALU]>;
+}
+
+let Latency = 7 in {
+def : WriteRes<WriteFMul64, [Nuclei100UnitFPALU]>;
+def : WriteRes<WriteFMA64, [Nuclei100UnitFPALU]>;
+}
+
+// FP division
+// FP division unit on Nuclei100 is not pipelined, so set resource cycles to latency.
+let Latency = 20, ReleaseAtCycles = [20] in {
+def : WriteRes<WriteFDiv32, [Nuclei100UnitFPDivSqrt]>;
+def : WriteRes<WriteFDiv64, [Nuclei100UnitFPDivSqrt]>;
+}
+
+// FP square root unit on Nuclei100 is not pipelined, so set resource cycles to latency.
+def : WriteRes<WriteFSqrt32, [Nuclei100UnitFPDivSqrt]> { let Latency = 20;
+                                                      let ReleaseAtCycles = [20]; }
+def : WriteRes<WriteFSqrt64, [Nuclei100UnitFPDivSqrt]> { let Latency = 25;
+                                                      let ReleaseAtCycles = [25]; }
+
+// Others
+def : WriteRes<WriteCSR, []>;
+def : WriteRes<WriteNop, []>;
+
+def : InstRW<[WriteIALU], (instrs COPY)>;
+
+//===----------------------------------------------------------------------===//
+// Bypass and advance
+def : ReadAdvance<ReadJmp, 0>;
+def : ReadAdvance<ReadJalr, 0>;
+def : ReadAdvance<ReadCSR, 0>;
+def : ReadAdvance<ReadStoreData, 0>;
+def : ReadAdvance<ReadMemBase, 0>;
+def : ReadAdvance<ReadIALU, 0>;
+def : ReadAdvance<ReadIALU32, 0>;
+def : ReadAdvance<ReadShiftImm, 0>;
+def : ReadAdvance<ReadShiftImm32, 0>;
+def : ReadAdvance<ReadShiftReg, 0>;
+def : ReadAdvance<ReadShiftReg32, 0>;
+def : ReadAdvance<ReadIDiv, 0>;
+def : ReadAdvance<ReadIDiv32, 0>;
+def : ReadAdvance<ReadIRem, 0>;
+def : ReadAdvance<ReadIRem32, 0>;
+def : ReadAdvance<ReadIMul, 0>;
+def : ReadAdvance<ReadIMul32, 0>;
+def : ReadAdvance<ReadAtomicWA, 0>;
+def : ReadAdvance<ReadAtomicWD, 0>;
+def : ReadAdvance<ReadAtomicDA, 0>;
+def : ReadAdvance<ReadAtomicDD, 0>;
+def : ReadAdvance<ReadAtomicLDW, 0>;
+def : ReadAdvance<ReadAtomicLDD, 0>;
+def : ReadAdvance<ReadAtomicSTW, 0>;
+def : ReadAdvance<ReadAtomicSTD, 0>;
+def : ReadAdvance<ReadFStoreData, 0>;
+def : ReadAdvance<ReadFMemBase, 0>;
+def : ReadAdvance<ReadFAdd32, 0>;
+def : ReadAdvance<ReadFAdd64, 0>;
+def : ReadAdvance<ReadFMul32, 0>;
+def : ReadAdvance<ReadFMul64, 0>;
+def : ReadAdvance<ReadFMA32, 0>;
+def : ReadAdvance<ReadFMA32Addend, 0>;
+def : ReadAdvance<ReadFMA64, 0>;
+def : ReadAdvance<ReadFMA64Addend, 0>;
+def : ReadAdvance<ReadFDiv32, 0>;
+def : ReadAdvance<ReadFDiv64, 0>;
+def : ReadAdvance<ReadFSqrt32, 0>;
+def : ReadAdvance<ReadFSqrt64, 0>;
+def : ReadAdvance<ReadFCmp32, 0>;
+def : ReadAdvance<ReadFCmp64, 0>;
+def : ReadAdvance<ReadFSGNJ32, 0>;
+def : ReadAdvance<ReadFSGNJ64, 0>;
+def : ReadAdvance<ReadFMinMax32, 0>;
+def : ReadAdvance<ReadFMinMax64, 0>;
+def : ReadAdvance<ReadFCvtF32ToI32, 0>;
+def : ReadAdvance<ReadFCvtF32ToI64, 0>;
+def : ReadAdvance<ReadFCvtF64ToI32, 0>;
+def : ReadAdvance<ReadFCvtF64ToI64, 0>;
+def : ReadAdvance<ReadFCvtI32ToF32, 0>;
+def : ReadAdvance<ReadFCvtI32ToF64, 0>;
+def : ReadAdvance<ReadFCvtI64ToF32, 0>;
+def : ReadAdvance<ReadFCvtI64ToF64, 0>;
+def : ReadAdvance<ReadFCvtF32ToF64, 0>;
+def : ReadAdvance<ReadFCvtF64ToF32, 0>;
+def : ReadAdvance<ReadFMovF32ToI32, 0>;
+def : ReadAdvance<ReadFMovI32ToF32, 0>;
+def : ReadAdvance<ReadFMovF64ToI64, 0>;
+def : ReadAdvance<ReadFMovI64ToF64, 0>;
+def : ReadAdvance<ReadFClass32, 0>;
+def : ReadAdvance<ReadFClass64, 0>;
+
+//===----------------------------------------------------------------------===//
+// Unsupported extensions
+defm : UnsupportedSchedV;
+defm : UnsupportedSchedZabha;
+defm : UnsupportedSchedZba;
+defm : UnsupportedSchedZbb;
+defm : UnsupportedSchedZbc;
+defm : UnsupportedSchedZbs;
+defm : UnsupportedSchedZbkb;
+defm : UnsupportedSchedZbkx;
+defm : UnsupportedSchedZfa;
+defm : UnsupportedSchedZfh;
+defm : UnsupportedSchedSFB;
+defm : UnsupportedSchedXsfvcp;
+defm : UnsupportedSchedZvk;
+}
