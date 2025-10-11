@@ -69,6 +69,8 @@ public:
     Nuclei600,
     Nuclei900,
     Nuclei1000,
+    Nuclei10003w,
+    Nuclei10004w,
   };
   // clang-format on
 private:

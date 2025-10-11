@@ -1546,6 +1546,16 @@ def TuneNuclei1000 : SubtargetFeature<"nuclei1000", "RISCVProcFamily", "Nuclei10
                                    [TuneNoDefaultUnroll,
                                     TuneShortForwardBranchOpt]>;
 
+def TuneNuclei10003w : SubtargetFeature<"nuclei10003w", "RISCVProcFamily", "Nuclei10003w",
+                                   "Nuclei 1000-3w-Series processors",
+                                   [TuneNoDefaultUnroll,
+                                    TuneShortForwardBranchOpt]>;
+
+def TuneNuclei10004w : SubtargetFeature<"nuclei10004w", "RISCVProcFamily", "Nuclei10004w",
+                                   "Nuclei 1000-4w-Series processors",
+                                   [TuneNoDefaultUnroll,
+                                    TuneShortForwardBranchOpt]>;
+
 def TuneVentanaVeyron : SubtargetFeature<"ventana-veyron", "RISCVProcFamily", "VentanaVeyron",
                                          "Ventana Veyron-Series processors">;
 

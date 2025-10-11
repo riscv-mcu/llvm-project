@@ -59,6 +59,8 @@ include "RISCVSchedNuclei300.td"
 include "RISCVSchedNuclei600.td"
 include "RISCVSchedNuclei900.td"
 include "RISCVSchedNuclei1000.td"
+include "RISCVSchedNuclei10003w.td"
+include "RISCVSchedNuclei10004w.td"
 
 //===----------------------------------------------------------------------===//
 // RISC-V processors supported.
