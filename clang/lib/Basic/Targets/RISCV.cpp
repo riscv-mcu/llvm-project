@@ -222,6 +222,9 @@ void RISCVTargetInfo::getTargetDefines(const LangOptions &Opts,
     else
       Builder.defineMacro("__riscv_32e");
   }
+
+  if (ISAInfo->hasExtension("xxldsp"))
+    Builder.defineMacro("__riscv_dsp");
 }
 
 static constexpr Builtin::Info BuiltinInfo[] = {
