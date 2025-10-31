@@ -698,7 +698,9 @@ DecodeStatus RISCVDisassembler::getInstruction(MCInst &MI, uint64_t &Size,
 
   // It's a 32 bit instruction if bit 1:0 are 0b11(checked above) and bits 4:2
   // are not 0b111.
-  if ((Bytes[0] & 0b1'1100) != 0b1'1100)
+  if (((Bytes[0] & 0b1'1100) != 0b1'1100)
+      || (STI.hasFeature(RISCV::FeatureVendorXxldsp)
+        && ((Bytes[0] & 0b111'1111) == 0b111'1111)))
     return getInstruction32(MI, Size, Bytes, Address, CS);
 
   // 48-bit instructions are encoded as 0bxx011111.
