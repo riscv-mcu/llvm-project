@@ -349,6 +349,11 @@ let Predicates = [HasVendorXxldsp], DecoderNamespace = "Xxldsp",
   def BPICK     : XxldspR4<0b00, 0b011, "bpick">;
 }
 
+let Predicates = [HasVendorXxldsp] in {
+  def : InstAlias<"clrov", (CSRRCI X0, UCODE.Encoding, 1)>;
+  def : InstAlias<"rdov $rd", (CSRRS GPR:$rd, UCODE.Encoding, X0)>;
+}
+
 let Predicates = [HasVendorXxldsp, IsRV64], DecoderNamespace = "Xxldsp",
     hasSideEffects = 0, mayLoad = 0, mayStore = 0 in {
   def ADD32     : XxldspRR<0b0100000, 0b010, "add32">;
@@ -434,6 +439,12 @@ let Predicates = [HasVendorXxldsp, IsRV64], DecoderNamespace = "Xxldsp",
   def SRAIW_U   : XxldspR_i5<0b0011010, 0b001, "sraiw.u">;
 }
 
+let Predicates = [HasVendorXxldsp, IsRV64] in {
+  def : InstAlias<"smbb32 $rd, $rs1, $rs2", (MULSR64  GPR:$rd, GPR:$rs1, GPR:$rs2)>;
+  def : InstAlias<"kmada32 $rd, $rs1, $rs2", (KMAR64  GPR:$rd, GPR:$rs1, GPR:$rs2)>;
+}
+
+
 let Predicates = [HasVendorXxldspn1x], DecoderNamespace = "Xxldspn1x",
     hasSideEffects = 0, mayLoad = 0, mayStore = 0 in {
   def DKHM8     : XxldspRR<0b1000111, 0b111, "dkhm8">;
@@ -457,6 +468,7 @@ let Predicates = [HasVendorXxldspn2x], DecoderNamespace = "Xxldspn2x",
   def DSMMUL_U       : XxldspRR_cust3<0b0000011, 0b000, "dsmmul.u">;
   def DKWMMUL        : XxldspRR_cust3<0b0000100, 0b000, "dkwmmul">;
   def DKWMMUL_U      : XxldspRR_cust3<0b0000101, 0b000, "dkwmmul.u">;
+  def DKABS32        : XxldspR_cust3<0b0000110, 0b00000, 0b000, "dkabs32">;
   def DKSLRA32       : XxldspRR_cust3<0b0000111, 0b000, "dkslra32">;
   def DKADD32        : XxldspRR_cust3<0b0001000, 0b000, "dkadd32">;
   def DKSUB32        : XxldspRR_cust3<0b0001001, 0b000, "dksub32">;
@@ -574,7 +586,7 @@ let Predicates = [HasVendorXxldspn3x], DecoderNamespace = "Xxldspn3x",
   def DSMAXDA16   : XxldspRR_cust3<0b1100011, 0b000, "dsmaxda16">;
   def DKSMS32_U   : XxldspRR_cust3<0b1100100, 0b000, "dksms32.u">;
   def DMADA32     : XxldspRR_cust3<0b1100101, 0b000, "dmada32">;
-  def DSMA32_U    : XxldspRR_cust3<0b1101000, 0b000, "dsma32_u">;
+  def DSMA32_U    : XxldspRR_cust3<0b1101000, 0b000, "dsma32.u">;
   def DSMXS32_U   : XxldspRR_cust3<0b1101001, 0b000, "dsmxs32.u">;
   def DSMXA32_U   : XxldspRR_cust3<0b1101010, 0b000, "dsmxa32.u">;
   def DSMS32_U    : XxldspRR_cust3<0b1101011, 0b000, "dsms32.u">;

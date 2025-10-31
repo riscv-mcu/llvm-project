@@ -658,7 +658,7 @@ def : SysReg<"mscratchcsw", 0x348>;
 def : SysReg<"mscratchcswl", 0x349>;
 def : SysReg<"msavedcause1", 0x7db>;
 def : SysReg<"msavedcause2", 0x7dc>;
-def : SysReg<"ucode", 0x801>;
+def UCODE : SysReg<"ucode", 0x801>;
 def : SysReg<"mlwid", 0x390>;
 def : SysReg<"mwiddeleg", 0x748>;
 def : SysReg<"slwid", 0x190>;
