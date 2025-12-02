@@ -123,6 +123,8 @@ let RegAltNameIndices = [ABIRegAltName] in {
 
 def XLenVT : ValueTypeByHwMode<[RV32, RV64],
                                [i32,  i64]>;
+defvar XLenPairVT = untyped;
+
 // Allow f64 in GPR for ZDINX on RV64.
 def XLenFVT : ValueTypeByHwMode<[RV64],
                                 [f64]>;
@@ -196,6 +198,58 @@ def SR07 : GPRRegisterClass<(add (sequence "X%u", 8, 9),
                                  (sequence "X%u", 18, 23))>;
 
 def GPRX1X5 :  GPRRegisterClass<(add X1, X5)>;
+
+//===----------------------------------------------------------------------===//
+// Even-Odd GPR Pairs
+//===----------------------------------------------------------------------===//
+
+def XLenPairRI : RegInfoByHwMode<
+      [RV32,                RV64],
+      [RegInfo<64, 64, 32>, RegInfo<128, 128, 64>]>;
+
+// Dummy zero register for use in the register pair containing X0 (as X1 is
+// not read to or written when the X0 register pair is used).
+def DUMMY_REG_PAIR_WITH_X0 : RISCVReg<0, "0">;
+
+// Must add DUMMY_REG_PAIR_WITH_X0 to a separate register class to prevent the
+// register's existence from changing codegen (due to the regPressureSetLimit
+// for the GPR register class being altered).
+def GPRAll : GPRRegisterClass<(add GPR, DUMMY_REG_PAIR_WITH_X0)>;
+
+let RegAltNameIndices = [ABIRegAltName] in {
+  def X0_Pair : RISCVRegWithSubRegs<0, X0.AsmName,
+                                    [X0, DUMMY_REG_PAIR_WITH_X0],
+                                    X0.AltNames> {
+    let SubRegIndices = [sub_gpr_even, sub_gpr_odd];
+    let CoveredBySubRegs = 1;
+  }
+  foreach I = 1-15 in {
+    defvar Index = !shl(I, 1);
+    defvar IndexP1 = !add(Index, 1);
+    defvar Reg = !cast<Register>("X"#Index);
+    defvar RegP1 = !cast<Register>("X"#IndexP1);
+    def "X" # Index #"_X" # IndexP1 : RISCVRegWithSubRegs<Index,
+                                                          Reg.AsmName,
+                                                          [Reg, RegP1],
+                                                          Reg.AltNames> {
+      let SubRegIndices = [sub_gpr_even, sub_gpr_odd];
+      let CoveredBySubRegs = 1;
+    }
+  }
+}
+
+let RegInfos = XLenPairRI, CopyCost = 2 in {
+def GPRPair : RISCVRegisterClass<[XLenPairVT,XLenPairFVT], 64, (add
+    X10_X11, X12_X13, X14_X15, X16_X17,
+    X6_X7,
+    X28_X29, X30_X31,
+    X8_X9,
+    X18_X19, X20_X21, X22_X23, X24_X25, X26_X27,
+    X0_Pair, X2_X3, X4_X5
+)>;
+
+def GPRPairNoX0 : RISCVRegisterClass<[XLenPairVT,XLenPairFVT], 64, (sub GPRPair, X0_Pair)>;
+} // let RegInfos = XLenPairRI, DecoderMethod = "DecodeGPRPairRegisterClass"
 
 // Floating point registers
 let RegAltNameIndices = [ABIRegAltName] in {
@@ -560,49 +614,6 @@ let RegInfos = XLenRI in {
 def GPRF16  : RISCVRegisterClass<[f16], 16, (add GPR)>;
 def GPRF32  : RISCVRegisterClass<[f32], 32, (add GPR)>;
 } // RegInfos = XLenRI
-
-// Dummy zero register for use in the register pair containing X0 (as X1 is
-// not read to or written when the X0 register pair is used).
-def DUMMY_REG_PAIR_WITH_X0 : RISCVReg<0, "0">;
-
-// Must add DUMMY_REG_PAIR_WITH_X0 to a separate register class to prevent the
-// register's existence from changing codegen (due to the regPressureSetLimit
-// for the GPR register class being altered).
-def GPRAll : GPRRegisterClass<(add GPR, DUMMY_REG_PAIR_WITH_X0)>;
-
-let RegAltNameIndices = [ABIRegAltName] in {
-  def X0_Pair : RISCVRegWithSubRegs<0, X0.AsmName,
-                                    [X0, DUMMY_REG_PAIR_WITH_X0],
-                                    X0.AltNames> {
-    let SubRegIndices = [sub_gpr_even, sub_gpr_odd];
-    let CoveredBySubRegs = 1;
-  }
-  foreach I = 1-15 in {
-    defvar Index = !shl(I, 1);
-    defvar IndexP1 = !add(Index, 1);
-    defvar Reg = !cast<Register>("X"#Index);
-    defvar RegP1 = !cast<Register>("X"#IndexP1);
-    def "X" # Index #"_X" # IndexP1 : RISCVRegWithSubRegs<Index,
-                                                          Reg.AsmName,
-                                                          [Reg, RegP1],
-                                                          Reg.AltNames> {
-      let SubRegIndices = [sub_gpr_even, sub_gpr_odd];
-      let CoveredBySubRegs = 1;
-    }
-  }
-}
-
-let RegInfos = RegInfoByHwMode<[RV32, RV64],
-                               [RegInfo<64, 64, 32>, RegInfo<128, 128, 64>]>,
-    DecoderMethod = "DecodeGPRPairRegisterClass" in
-def GPRPair : RISCVRegisterClass<[XLenPairFVT], 64, (add
-    X10_X11, X12_X13, X14_X15, X16_X17,
-    X6_X7,
-    X28_X29, X30_X31,
-    X8_X9,
-    X18_X19, X20_X21, X22_X23, X24_X25, X26_X27,
-    X0_Pair, X2_X3, X4_X5
-)>;
 
 // The register class is added for inline assembly for vector mask types.
 def VM : VReg<VMaskVTs, (add VR), 1>;

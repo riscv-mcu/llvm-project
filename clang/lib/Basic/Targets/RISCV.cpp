@@ -100,6 +100,10 @@ bool RISCVTargetInfo::validateAsmConstraint(
   case 'S': // A symbol or label reference with a constant offset
     Info.setAllowsRegister();
     return true;
+  case 'R':
+    // An even-odd GPR pair
+    Info.setAllowsRegister();
+    return true;
   case 'v':
     // A vector register.
     if (Name[1] == 'r' || Name[1] == 'm') {
