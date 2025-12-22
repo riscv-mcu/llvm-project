@@ -14,28 +14,26 @@
 def Nuclei600Model : SchedMachineModel {
   let MicroOpBufferSize = 0; // Nuclei600 is in-order.
   let IssueWidth = 1;        // 1 micro-op is dispatched per cycle.
-  let LoadLatency = 3;       // rv32:3  rv64:2
+  let LoadLatency = 4;       // Base memory latency (4+X cycles)
   let MispredictPenalty = 3;
   let CompleteModel = false;
   let UnsupportedFeatures = [HasStdExtZbkb, HasStdExtZbkc, HasStdExtZbkx,
                              HasStdExtZcmt, HasStdExtZknd, HasStdExtZkne,
                              HasStdExtZknh, HasStdExtZksed, HasStdExtZksh,
-                             HasStdExtZkr, HasVInstructions, HasVInstructionsI64,HasVendorXxldspn3x];
+                             HasStdExtZkr, HasVInstructions, HasVInstructionsI64];
 }
 
 //===----------------------------------------------------------------------===//
 // Define each kind of processor resource and number available.
-
-// Modeling each pipeline as a ProcResource using the BufferSize = 0 since
-// Nuclei600 is in-order.
 
 let BufferSize = 0 in {
 def Nuclei600UnitALU        : ProcResource<1>; // Int ALU
 def Nuclei600UnitIMul       : ProcResource<1>; // Int Multiply
 def Nuclei600UnitMem        : ProcResource<1>; // Load/Store
 def Nuclei600UnitB          : ProcResource<1>; // Branch
-
 def Nuclei600UnitFPALU      : ProcResource<1>; // FP ALU
+def Nuclei600UnitDSPMul     : ProcResource<1>; // DSP乘法单元
+def Nuclei600UnitDSPOther   : ProcResource<1>; // DSP其他操作
 }
 
 let BufferSize = 1 in {
@@ -43,57 +41,70 @@ def Nuclei600UnitIDiv       : ProcResource<1>; // Int Division
 def Nuclei600UnitFPDivSqrt  : ProcResource<1>; // FP Divide/Sqrt
 }
 
+def WriteDSPMul   : SchedWrite;
+def WriteDSPOther : SchedWrite;
+
 //===----------------------------------------------------------------------===//
 
 let SchedModel = Nuclei600Model in {
 
-// Branching
-def : WriteRes<WriteJmp, [Nuclei600UnitB]>;
-def : WriteRes<WriteJal, [Nuclei600UnitB]>;
-def : WriteRes<WriteJalr, [Nuclei600UnitB]>;
+//===----------------------------------------------------------------------===//
+// 基础ALU和位操作指令 - 1 cycle
 
-// Integer arithmetic and logic
-def : WriteRes<WriteIALU32, [Nuclei600UnitALU]>;
-def : WriteRes<WriteIALU, [Nuclei600UnitALU]>;
-def : WriteRes<WriteShiftImm32, [Nuclei600UnitALU]>;
-def : WriteRes<WriteShiftImm, [Nuclei600UnitALU]>;
-def : WriteRes<WriteShiftReg32, [Nuclei600UnitALU]>;
-def : WriteRes<WriteShiftReg, [Nuclei600UnitALU]>;
+def : WriteRes<WriteIALU32, [Nuclei600UnitALU]> { let Latency = 1; }
+def : WriteRes<WriteIALU, [Nuclei600UnitALU]> { let Latency = 1; }
+def : WriteRes<WriteShiftImm32, [Nuclei600UnitALU]> { let Latency = 1; }
+def : WriteRes<WriteShiftImm, [Nuclei600UnitALU]> { let Latency = 1; }
+def : WriteRes<WriteShiftReg32, [Nuclei600UnitALU]> { let Latency = 1; }
+def : WriteRes<WriteShiftReg, [Nuclei600UnitALU]> { let Latency = 1; }
+def : WriteRes<WriteBitmanip, [Nuclei600UnitALU]> { let Latency = 1; }
 
-// Integer multiplication
-let Latency = 4 in {
-def : WriteRes<WriteIMul, [Nuclei600UnitIMul]>;
-def : WriteRes<WriteIMul32, [Nuclei600UnitIMul]>;
-}
+//===----------------------------------------------------------------------===//
+// DSP指令 - 乘法4 cycle，其他2 cycle
 
-// Integer division
-// Worst case latency is used.
+def : WriteRes<WriteDSPMul, [Nuclei600UnitDSPMul]> { let Latency = 4; }
+def : WriteRes<WriteDSPOther, [Nuclei600UnitDSPOther]> { let Latency = 2; }
+
+//===----------------------------------------------------------------------===//
+// 分支指令 - 1 cycle (不考虑跳转后取指)
+
+def : WriteRes<WriteJal, [Nuclei600UnitB]> { let Latency = 1; }
+def : WriteRes<WriteJalr, [Nuclei600UnitB]> { let Latency = 1; }
+def : WriteRes<WriteJmp, [Nuclei600UnitB]> { let Latency = 1; }
+
+//===----------------------------------------------------------------------===//
+// 整数乘法 - 配置为3 cycle (取中间值)
+
+def : WriteRes<WriteIMul32, [Nuclei600UnitIMul]> { let Latency = 3; }
+def : WriteRes<WriteIMul, [Nuclei600UnitIMul]> { let Latency = 3; }
+
+//===----------------------------------------------------------------------===//
+// 整数除法 - Radix16配置(32位9周期，64位17周期)
+
 def : WriteRes<WriteIDiv32, [Nuclei600UnitIDiv]> {
-  let Latency = 34;
-  let ReleaseAtCycles = [34];
+  let Latency = 9;
+  let ReleaseAtCycles = [9]; // Non-pipelined
 }
 def : WriteRes<WriteIDiv, [Nuclei600UnitIDiv]> {
-  let Latency = 33;
-  let ReleaseAtCycles = [33];
+  let Latency = 17;
+  let ReleaseAtCycles = [17]; // Non-pipelined
 }
 
-// Integer remainder
-def : WriteRes<WriteIRem32, [Nuclei600UnitIDiv]> {
-  let Latency = 34;
-  let ReleaseAtCycles = [34];
-}
-def : WriteRes<WriteIRem, [Nuclei600UnitIDiv]> {
-  let Latency = 33;
-  let ReleaseAtCycles = [33];
-}
+//===----------------------------------------------------------------------===//
+// 内存操作 - Load(4+X) Store(1)
 
-// Memory
-def : WriteRes<WriteSTB, [Nuclei600UnitMem]>;
-def : WriteRes<WriteSTH, [Nuclei600UnitMem]>;
-def : WriteRes<WriteSTW, [Nuclei600UnitMem]>;
-def : WriteRes<WriteSTD, [Nuclei600UnitMem]>;
-def : WriteRes<WriteFST32, [Nuclei600UnitMem]>;
-def : WriteRes<WriteFST64, [Nuclei600UnitMem]>;
+def : WriteRes<WriteLDW, [Nuclei600UnitMem]> { let Latency = 4; } // Base 4+X
+def : WriteRes<WriteLDD, [Nuclei600UnitMem]> { let Latency = 4; }
+def : WriteRes<WriteFLD32, [Nuclei600UnitMem]> { let Latency = 4; }
+def : WriteRes<WriteFLD64, [Nuclei600UnitMem]> { let Latency = 4; }
+def : WriteRes<WriteSTB, [Nuclei600UnitMem]> { let Latency = 1; }
+def : WriteRes<WriteSTH, [Nuclei600UnitMem]> { let Latency = 1; }
+
+def : WriteRes<WriteSTW, [Nuclei600UnitMem]> { let Latency = 1; }
+def : WriteRes<WriteSTD, [Nuclei600UnitMem]> { let Latency = 1; }
+def : WriteRes<WriteFST32, [Nuclei600UnitMem]> { let Latency = 1; }
+def : WriteRes<WriteFST64, [Nuclei600UnitMem]> { let Latency = 1; }
+
 
 let Latency = 3 in {
 def : WriteRes<WriteLDB, [Nuclei600UnitMem]>;
@@ -101,10 +112,6 @@ def : WriteRes<WriteLDH, [Nuclei600UnitMem]>;
 }
 
 let Latency = 2 in {
-def : WriteRes<WriteLDW, [Nuclei600UnitMem]>;
-def : WriteRes<WriteLDD, [Nuclei600UnitMem]>;
-def : WriteRes<WriteFLD32, [Nuclei600UnitMem]>;
-def : WriteRes<WriteFLD64, [Nuclei600UnitMem]>;
 
 // Atomic memory
 def : WriteRes<WriteAtomicW, [Nuclei600UnitMem]>;
@@ -117,22 +124,28 @@ def : WriteRes<WriteAtomicLDD, [Nuclei600UnitMem]>;
 def : WriteRes<WriteAtomicSTW, [Nuclei600UnitMem]>;
 def : WriteRes<WriteAtomicSTD, [Nuclei600UnitMem]>;
 
-// Single precision.
+//===----------------------------------------------------------------------===//
+// 浮点FMAC操作 - 配置为4 cycle (中间值)
+
 let Latency = 4 in {
 def : WriteRes<WriteFAdd32, [Nuclei600UnitFPALU]>;
-def : WriteRes<WriteFSGNJ32, [Nuclei600UnitFPALU]>;
-def : WriteRes<WriteFMinMax32, [Nuclei600UnitFPALU]>;
-}
-
-// Double precision
-let Latency = 6 in {
 def : WriteRes<WriteFAdd64, [Nuclei600UnitFPALU]>;
-def : WriteRes<WriteFSGNJ64, [Nuclei600UnitFPALU]>;
-def : WriteRes<WriteFMinMax64, [Nuclei600UnitFPALU]>;
+def : WriteRes<WriteFMul32, [Nuclei600UnitFPALU]>;
+def : WriteRes<WriteFMul64, [Nuclei600UnitFPALU]>;
+def : WriteRes<WriteFMA32, [Nuclei600UnitFPALU]>;
+def : WriteRes<WriteFMA64, [Nuclei600UnitFPALU]>;
+def : WriteRes<WriteFCmp32, [Nuclei600UnitFPALU]>;
+def : WriteRes<WriteFCmp64, [Nuclei600UnitFPALU]>;
 }
 
-// Conversions
-let Latency = 2 in {
+//===----------------------------------------------------------------------===//
+// 浮点杂项操作 - 3 cycle
+
+let Latency = 3 in {
+def : WriteRes<WriteFSGNJ32, [Nuclei600UnitFPALU]>;
+def : WriteRes<WriteFSGNJ64, [Nuclei600UnitFPALU]>;
+def : WriteRes<WriteFMinMax32, [Nuclei600UnitFPALU]>;
+def : WriteRes<WriteFMinMax64, [Nuclei600UnitFPALU]>;
 def : WriteRes<WriteFCvtI32ToF32, [Nuclei600UnitFPALU]>;
 def : WriteRes<WriteFCvtI32ToF64, [Nuclei600UnitFPALU]>;
 def : WriteRes<WriteFCvtI64ToF32, [Nuclei600UnitFPALU]>;
@@ -143,44 +156,48 @@ def : WriteRes<WriteFCvtF64ToI32, [Nuclei600UnitFPALU]>;
 def : WriteRes<WriteFCvtF64ToI64, [Nuclei600UnitFPALU]>;
 def : WriteRes<WriteFCvtF32ToF64, [Nuclei600UnitFPALU]>;
 def : WriteRes<WriteFCvtF64ToF32, [Nuclei600UnitFPALU]>;
-
 def : WriteRes<WriteFClass32, [Nuclei600UnitFPALU]>;
 def : WriteRes<WriteFClass64, [Nuclei600UnitFPALU]>;
-def : WriteRes<WriteFCmp32, [Nuclei600UnitFPALU]>;
-def : WriteRes<WriteFCmp64, [Nuclei600UnitFPALU]>;
 def : WriteRes<WriteFMovF32ToI32, [Nuclei600UnitFPALU]>;
 def : WriteRes<WriteFMovI32ToF32, [Nuclei600UnitFPALU]>;
 def : WriteRes<WriteFMovF64ToI64, [Nuclei600UnitFPALU]>;
 def : WriteRes<WriteFMovI64ToF64, [Nuclei600UnitFPALU]>;
 }
 
-// FP multiplication
-let Latency = 5 in {
-def : WriteRes<WriteFMul32, [Nuclei600UnitFPALU]>;
-def : WriteRes<WriteFMA32, [Nuclei600UnitFPALU]>;
+//===----------------------------------------------------------------------===//
+// 浮点除法和开方 - Radix4配置(32位20周期)
+
+def : WriteRes<WriteFDiv32, [Nuclei600UnitFPDivSqrt]> {
+  let Latency = 20;
+  let ReleaseAtCycles = [20]; // Non-pipelined
+}
+def : WriteRes<WriteFSqrt32, [Nuclei600UnitFPDivSqrt]> {
+  let Latency = 20;
+  let ReleaseAtCycles = [20];
+}
+def : WriteRes<WriteFDiv64, [Nuclei600UnitFPDivSqrt]> {
+  let Latency = 34;
+  let ReleaseAtCycles = [34];
+}
+def : WriteRes<WriteFSqrt64, [Nuclei600UnitFPDivSqrt]> {
+  let Latency = 34;
+  let ReleaseAtCycles = [34];
 }
 
-let Latency = 7 in {
-def : WriteRes<WriteFMul64, [Nuclei600UnitFPALU]>;
-def : WriteRes<WriteFMA64, [Nuclei600UnitFPALU]>;
+// Integer remainder
+def : WriteRes<WriteIRem32, [Nuclei600UnitIDiv]> {
+  let Latency = 34;
+  let ReleaseAtCycles = [34];
+}
+def : WriteRes<WriteIRem, [Nuclei600UnitIDiv]> {
+  let Latency = 34;
+  let ReleaseAtCycles = [34];
 }
 
-// FP division
-// FP division unit on Nuclei600 is not pipelined, so set resource cycles to latency.
-let Latency = 20, ReleaseAtCycles = [20] in {
-def : WriteRes<WriteFDiv32, [Nuclei600UnitFPDivSqrt]>;
-def : WriteRes<WriteFDiv64, [Nuclei600UnitFPDivSqrt]>;
-}
-
-// FP square root unit on Nuclei600 is not pipelined, so set resource cycles to latency.
-def : WriteRes<WriteFSqrt32, [Nuclei600UnitFPDivSqrt]> { let Latency = 20;
-                                                      let ReleaseAtCycles = [20]; }
-def : WriteRes<WriteFSqrt64, [Nuclei600UnitFPDivSqrt]> { let Latency = 25;
-                                                      let ReleaseAtCycles = [25]; }
-
-// Others
-def : WriteRes<WriteCSR, []>;
-def : WriteRes<WriteNop, []>;
+//===----------------------------------------------------------------------===//
+// 其他指令
+def : WriteRes<WriteCSR, []> { let Latency = 1; }
+def : WriteRes<WriteNop, []> { let Latency = 1; }
 
 def : InstRW<[WriteIALU], (instrs COPY)>;
 

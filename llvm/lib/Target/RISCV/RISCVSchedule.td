@@ -56,6 +56,10 @@ def WriteFSqrt16    : SchedWrite;    // 16-bit floating point sqrt
 def WriteFSqrt32    : SchedWrite;    // 32-bit floating point sqrt
 def WriteFSqrt64    : SchedWrite;    // 64-bit floating point sqrt
 
+def WriteLUI : SchedWrite;
+def WriteAUIPC : SchedWrite;
+def WriteBitmanip : SchedWrite;
+
 // Integer to float conversions
 def WriteFCvtI32ToF16  : SchedWrite;
 def WriteFCvtI32ToF32  : SchedWrite;

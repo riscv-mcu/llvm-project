@@ -14,13 +14,13 @@
 def Nuclei300Model : SchedMachineModel {
   let MicroOpBufferSize = 0; // Nuclei300 is in-order.
   let IssueWidth = 1;        // 1 micro-op is dispatched per cycle.
-  let LoadLatency = 3;       // rv32:3  rv64:2
+  let LoadLatency = 2;       // Modified to match table: 整数LOAD指令2 cycle
   let MispredictPenalty = 3;
   let CompleteModel = false;
   let UnsupportedFeatures = [HasStdExtZbkb, HasStdExtZbkc, HasStdExtZbkx,
                              HasStdExtZcmt, HasStdExtZknd, HasStdExtZkne,
                              HasStdExtZknh, HasStdExtZksed, HasStdExtZksh,
-                             HasStdExtZkr, HasVInstructions, HasVInstructionsI64,HasVendorXxldspn3x];
+                             HasStdExtZkr, HasVInstructions, HasVInstructionsI64];
 }
 
 //===----------------------------------------------------------------------===//
@@ -47,91 +47,109 @@ def Nuclei300UnitFPDivSqrt  : ProcResource<1>; // FP Divide/Sqrt
 
 let SchedModel = Nuclei300Model in {
 
-// Branching
-def : WriteRes<WriteJmp, [Nuclei300UnitB]>;
-def : WriteRes<WriteJal, [Nuclei300UnitB]>;
-def : WriteRes<WriteJalr, [Nuclei300UnitB]>;
+// 分支指令 - 全部2 cycle
+def : WriteRes<WriteJmp, [Nuclei300UnitB]> { let Latency = 2; }
+def : WriteRes<WriteJal, [Nuclei300UnitB]> { let Latency = 2; }
+def : WriteRes<WriteJalr, [Nuclei300UnitB]> { let Latency = 2; }
 
-// Integer arithmetic and logic
-def : WriteRes<WriteIALU32, [Nuclei300UnitALU]>;
-def : WriteRes<WriteIALU, [Nuclei300UnitALU]>;
-def : WriteRes<WriteShiftImm32, [Nuclei300UnitALU]>;
-def : WriteRes<WriteShiftImm, [Nuclei300UnitALU]>;
-def : WriteRes<WriteShiftReg32, [Nuclei300UnitALU]>;
-def : WriteRes<WriteShiftReg, [Nuclei300UnitALU]>;
+// ALU指令 - 全部1 cycle
+def : WriteRes<WriteIALU32, [Nuclei300UnitALU]> { let Latency = 1; }
+def : WriteRes<WriteIALU, [Nuclei300UnitALU]> { let Latency = 1; }
+def : WriteRes<WriteShiftImm32, [Nuclei300UnitALU]> { let Latency = 1; }
+def : WriteRes<WriteShiftImm, [Nuclei300UnitALU]> { let Latency = 1; }
+def : WriteRes<WriteShiftReg32, [Nuclei300UnitALU]> { let Latency = 1; }
+def : WriteRes<WriteShiftReg, [Nuclei300UnitALU]> { let Latency = 1; }
 
-// Integer multiplication
-let Latency = 4 in {
-def : WriteRes<WriteIMul, [Nuclei300UnitIMul]>;
-def : WriteRes<WriteIMul32, [Nuclei300UnitIMul]>;
-}
 
-// Integer division
-// Worst case latency is used.
+
+// LUI/AUIPC - 1 cycle
+def : WriteRes<WriteLUI, [Nuclei300UnitALU]> { let Latency = 1; }
+def : WriteRes<WriteAUIPC, [Nuclei300UnitALU]> { let Latency = 1; }
+
+// Bit-Manipulation Extensions - 1 cycle
+def : WriteRes<WriteBitmanip, [Nuclei300UnitALU]> { let Latency = 1; }
+
+// 整数乘法
+def : WriteRes<WriteIMul, [Nuclei300UnitIMul]> { let Latency = 2; }
+def : WriteRes<WriteIMul32, [Nuclei300UnitIMul]> { let Latency = 2; }
+
+// 整数除法
 def : WriteRes<WriteIDiv32, [Nuclei300UnitIDiv]> {
-  let Latency = 34;
-  let ReleaseAtCycles = [34];
+  let Latency = 17; // 17 cycles for RV32M division
+  let ReleaseAtCycles = [17]; // Non-pipelined
 }
 def : WriteRes<WriteIDiv, [Nuclei300UnitIDiv]> {
-  let Latency = 33;
-  let ReleaseAtCycles = [33];
+  let Latency = 33; // 33 cycles for RV64M division
+  let ReleaseAtCycles = [33]; // Non-pipelined
 }
 
-// Integer remainder
+// 整数余数
 def : WriteRes<WriteIRem32, [Nuclei300UnitIDiv]> {
-  let Latency = 34;
-  let ReleaseAtCycles = [34];
+  let Latency = 17; // 17 cycles for RV32M remainder
+  let ReleaseAtCycles = [17]; // Non-pipelined
 }
 def : WriteRes<WriteIRem, [Nuclei300UnitIDiv]> {
-  let Latency = 33;
-  let ReleaseAtCycles = [33];
+  let Latency = 33; // 33 cycles for RV64M remainder
+  let ReleaseAtCycles = [33]; // Non-pipelined
 }
 
-// Memory
-def : WriteRes<WriteSTB, [Nuclei300UnitMem]>;
-def : WriteRes<WriteSTH, [Nuclei300UnitMem]>;
-def : WriteRes<WriteSTW, [Nuclei300UnitMem]>;
-def : WriteRes<WriteSTD, [Nuclei300UnitMem]>;
-def : WriteRes<WriteFST32, [Nuclei300UnitMem]>;
-def : WriteRes<WriteFST64, [Nuclei300UnitMem]>;
-
-let Latency = 3 in {
-def : WriteRes<WriteLDB, [Nuclei300UnitMem]>;
-def : WriteRes<WriteLDH, [Nuclei300UnitMem]>;
+// 原子指令
+def : WriteRes<WriteAtomicW, [Nuclei300UnitMem]> {
+  let Latency = 6; // Other atomic instructions: 6 cycles
+}
+def : WriteRes<WriteAtomicD, [Nuclei300UnitMem]> {
+  let Latency = 6; // Other atomic instructions: 6 cycles
+}
+def : WriteRes<WriteAtomicLDW, [Nuclei300UnitMem]> {
+  let Latency = 3; // LR.W/SC.W: 3 cycles
+}
+def : WriteRes<WriteAtomicLDD, [Nuclei300UnitMem]> {
+  let Latency = 3; // LR.W/SC.W: 3 cycles
+}
+def : WriteRes<WriteAtomicSTW, [Nuclei300UnitMem]> {
+  let Latency = 3; // LR.W/SC.W: 3 cycles
+}
+def : WriteRes<WriteAtomicSTD, [Nuclei300UnitMem]> {
+  let Latency = 3; // LR.W/SC.W: 3 cycles
 }
 
-let Latency = 2 in {
-def : WriteRes<WriteLDW, [Nuclei300UnitMem]>;
-def : WriteRes<WriteLDD, [Nuclei300UnitMem]>;
-def : WriteRes<WriteFLD32, [Nuclei300UnitMem]>;
-def : WriteRes<WriteFLD64, [Nuclei300UnitMem]>;
+// 存储指令 - 全部1 cycle (包括整数和单精度浮点)
+def : WriteRes<WriteSTB, [Nuclei300UnitMem]> { let Latency = 1; }
+def : WriteRes<WriteSTH, [Nuclei300UnitMem]> { let Latency = 1; }
+def : WriteRes<WriteSTW, [Nuclei300UnitMem]> { let Latency = 1; }
+def : WriteRes<WriteFST32, [Nuclei300UnitMem]> { let Latency = 1; }
 
-// Atomic memory
-def : WriteRes<WriteAtomicW, [Nuclei300UnitMem]>;
-def : WriteRes<WriteAtomicD, [Nuclei300UnitMem]>;
+// 存储指令 - 双精度浮点4 cycle
+def : WriteRes<WriteSTD, [Nuclei300UnitMem]> { let Latency = 4; }
+def : WriteRes<WriteFST64, [Nuclei300UnitMem]> { let Latency = 4; }
 
-def : WriteRes<WriteAtomicLDW, [Nuclei300UnitMem]>;
-def : WriteRes<WriteAtomicLDD, [Nuclei300UnitMem]>;
-}
+// 加载指令 - 全部2 cycle (包括整数和浮点)
+def : WriteRes<WriteLDB, [Nuclei300UnitMem]> { let Latency = 2; }
+def : WriteRes<WriteLDH, [Nuclei300UnitMem]> { let Latency = 2; }
+def : WriteRes<WriteLDW, [Nuclei300UnitMem]> { let Latency = 2; }
+def : WriteRes<WriteFLD32, [Nuclei300UnitMem]> { let Latency = 2; }
 
-def : WriteRes<WriteAtomicSTW, [Nuclei300UnitMem]>;
-def : WriteRes<WriteAtomicSTD, [Nuclei300UnitMem]>;
+// 加载指令 - 双精度浮点4 cycle
+def : WriteRes<WriteLDD, [Nuclei300UnitMem]> { let Latency = 4; }
+def : WriteRes<WriteFLD64, [Nuclei300UnitMem]> { let Latency = 4; }
 
-// Single precision.
+// 浮点指令 - 全部4 cycle (包括各种精度的FMAC)
 let Latency = 4 in {
 def : WriteRes<WriteFAdd32, [Nuclei300UnitFPALU]>;
-def : WriteRes<WriteFSGNJ32, [Nuclei300UnitFPALU]>;
-def : WriteRes<WriteFMinMax32, [Nuclei300UnitFPALU]>;
-}
-
-// Double precision
-let Latency = 6 in {
 def : WriteRes<WriteFAdd64, [Nuclei300UnitFPALU]>;
+def : WriteRes<WriteFSGNJ32, [Nuclei300UnitFPALU]>;
 def : WriteRes<WriteFSGNJ64, [Nuclei300UnitFPALU]>;
+def : WriteRes<WriteFMinMax32, [Nuclei300UnitFPALU]>;
 def : WriteRes<WriteFMinMax64, [Nuclei300UnitFPALU]>;
+def : WriteRes<WriteFMul32, [Nuclei300UnitFPALU]>;
+def : WriteRes<WriteFMul64, [Nuclei300UnitFPALU]>;
+def : WriteRes<WriteFMA32, [Nuclei300UnitFPALU]>;
+def : WriteRes<WriteFMA64, [Nuclei300UnitFPALU]>;
+def : WriteRes<WriteFCmp32, [Nuclei300UnitFPALU]>;
+def : WriteRes<WriteFCmp64, [Nuclei300UnitFPALU]>;
 }
 
-// Conversions
+// 浮点转换指令 - 全部2 cycle
 let Latency = 2 in {
 def : WriteRes<WriteFCvtI32ToF32, [Nuclei300UnitFPALU]>;
 def : WriteRes<WriteFCvtI32ToF64, [Nuclei300UnitFPALU]>;
@@ -143,44 +161,37 @@ def : WriteRes<WriteFCvtF64ToI32, [Nuclei300UnitFPALU]>;
 def : WriteRes<WriteFCvtF64ToI64, [Nuclei300UnitFPALU]>;
 def : WriteRes<WriteFCvtF32ToF64, [Nuclei300UnitFPALU]>;
 def : WriteRes<WriteFCvtF64ToF32, [Nuclei300UnitFPALU]>;
-
 def : WriteRes<WriteFClass32, [Nuclei300UnitFPALU]>;
 def : WriteRes<WriteFClass64, [Nuclei300UnitFPALU]>;
-def : WriteRes<WriteFCmp32, [Nuclei300UnitFPALU]>;
-def : WriteRes<WriteFCmp64, [Nuclei300UnitFPALU]>;
 def : WriteRes<WriteFMovF32ToI32, [Nuclei300UnitFPALU]>;
 def : WriteRes<WriteFMovI32ToF32, [Nuclei300UnitFPALU]>;
 def : WriteRes<WriteFMovF64ToI64, [Nuclei300UnitFPALU]>;
 def : WriteRes<WriteFMovI64ToF64, [Nuclei300UnitFPALU]>;
 }
 
-// FP multiplication
-let Latency = 5 in {
-def : WriteRes<WriteFMul32, [Nuclei300UnitFPALU]>;
-def : WriteRes<WriteFMA32, [Nuclei300UnitFPALU]>;
+// 浮点除法
+def : WriteRes<WriteFDiv32, [Nuclei300UnitFPDivSqrt]> { 
+  let Latency = 19; // 16-19周期（取最大19）
+  let ReleaseAtCycles = [19]; // Non-pipelined
+}
+def : WriteRes<WriteFDiv64, [Nuclei300UnitFPDivSqrt]> { 
+  let Latency = 35; // 32-35周期（取最大35）
+  let ReleaseAtCycles = [35]; // Non-pipelined
 }
 
-let Latency = 7 in {
-def : WriteRes<WriteFMul64, [Nuclei300UnitFPALU]>;
-def : WriteRes<WriteFMA64, [Nuclei300UnitFPALU]>;
+// 浮点平方根
+def : WriteRes<WriteFSqrt32, [Nuclei300UnitFPDivSqrt]> { 
+  let Latency = 19; // 16-19周期（取最大19）
+  let ReleaseAtCycles = [19]; // Non-pipelined
+}
+def : WriteRes<WriteFSqrt64, [Nuclei300UnitFPDivSqrt]> { 
+  let Latency = 35; // 32-35周期（取最大35）
+  let ReleaseAtCycles = [35]; // Non-pipelined
 }
 
-// FP division
-// FP division unit on Nuclei300 is not pipelined, so set resource cycles to latency.
-let Latency = 20, ReleaseAtCycles = [20] in {
-def : WriteRes<WriteFDiv32, [Nuclei300UnitFPDivSqrt]>;
-def : WriteRes<WriteFDiv64, [Nuclei300UnitFPDivSqrt]>;
-}
-
-// FP square root unit on Nuclei300 is not pipelined, so set resource cycles to latency.
-def : WriteRes<WriteFSqrt32, [Nuclei300UnitFPDivSqrt]> { let Latency = 20;
-                                                      let ReleaseAtCycles = [20]; }
-def : WriteRes<WriteFSqrt64, [Nuclei300UnitFPDivSqrt]> { let Latency = 25;
-                                                      let ReleaseAtCycles = [25]; }
-
-// Others
-def : WriteRes<WriteCSR, []>;
-def : WriteRes<WriteNop, []>;
+// 其他指令
+def : WriteRes<WriteCSR, []> { let Latency = 1; }
+def : WriteRes<WriteNop, []> { let Latency = 1; }
 
 def : InstRW<[WriteIALU], (instrs COPY)>;
 
