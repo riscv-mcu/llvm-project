@@ -13,6 +13,7 @@
 //===----------------------------------------------------------------------===//
 
 include "riscv_vector_common.td"
+include "riscv_xl_vector.td"
 
 defvar TypeList = ["c","s","i","l","x","f","d","y"];
 defvar EEWList = [["8", "(Log2EEW:3)"],
@@ -1558,30 +1559,49 @@ let ManualCodegen = [{
     defm vfsub  : RVVFloatingBinBuiltinSetRoundingMode;
     defm vfrsub : RVVFloatingBinVFBuiltinSetRoundingMode;
 
+    defm xl_vfadd  : RVVBFloatingBinBuiltinSetRoundingMode_XL;
+    defm xl_vfsub  : RVVBFloatingBinBuiltinSetRoundingMode_XL;
+    defm xl_vfrsub : RVVBFloatingBinVFBuiltinSetRoundingMode_XL;
+
     // 13.3. Vector Widening Floating-Point Add/Subtract Instructions
     // Widening FP add/subtract, 2*SEW = 2*SEW +/- SEW
     defm vfwadd : RVVFloatingWidenOp0BinBuiltinSetRoundingMode;
     defm vfwsub : RVVFloatingWidenOp0BinBuiltinSetRoundingMode;
+    defm xl_vfwadd : RVVBFloatingWidenOp0BinBuiltinSetRoundingMode_XL;
+    defm xl_vfwsub : RVVBFloatingWidenOp0BinBuiltinSetRoundingMode_XL;
 
     // 13.4. Vector Single-Width Floating-Point Multiply/Divide Instructions
     defm vfmul  : RVVFloatingBinBuiltinSetRoundingMode;
     defm vfdiv  : RVVFloatingBinBuiltinSetRoundingMode;
     defm vfrdiv : RVVFloatingBinVFBuiltinSetRoundingMode;
+
+    defm xl_vfmul  : RVVBFloatingBinBuiltinSetRoundingMode_XL;
+    defm xl_vfdiv  : RVVBFloatingBinBuiltinSetRoundingMode_XL;
+    defm xl_vfrdiv : RVVBFloatingBinVFBuiltinSetRoundingMode_XL;
   }
   // 13.2. Vector Single-Width Floating-Point Add/Subtract Instructions
   defm vfadd  : RVVFloatingBinBuiltinSet;
   defm vfsub  : RVVFloatingBinBuiltinSet;
   defm vfrsub : RVVFloatingBinVFBuiltinSet;
 
+  defm xl_vfadd  : RVVBFloatingBinBuiltinSet_XL;
+  defm xl_vfsub  : RVVBFloatingBinBuiltinSet_XL;
+  defm xl_vfrsub : RVVBFloatingBinVFBuiltinSet_XL;
+
   // 13.3. Vector Widening Floating-Point Add/Subtract Instructions
   // Widening FP add/subtract, 2*SEW = 2*SEW +/- SEW
   defm vfwadd : RVVFloatingWidenOp0BinBuiltinSet;
   defm vfwsub : RVVFloatingWidenOp0BinBuiltinSet;
+  defm xl_vfwadd : RVVBFloatingWidenOp0BinBuiltinSet_XL;
+  defm xl_vfwsub : RVVBFloatingWidenOp0BinBuiltinSet_XL;
 
   // 13.4. Vector Single-Width Floating-Point Multiply/Divide Instructions
   defm vfmul  : RVVFloatingBinBuiltinSet;
   defm vfdiv  : RVVFloatingBinBuiltinSet;
   defm vfrdiv : RVVFloatingBinVFBuiltinSet;
+  defm xl_vfmul  : RVVBFloatingBinBuiltinSet_XL;
+  defm xl_vfdiv  : RVVBFloatingBinBuiltinSet_XL;
+  defm xl_vfrdiv : RVVBFloatingBinVFBuiltinSet_XL;
 }
 
 let ManualCodegen = [{
@@ -1634,6 +1654,8 @@ let ManualCodegen = [{
     // Widening FP add/subtract, 2*SEW = SEW +/- SEW
     defm vfwadd : RVVFloatingWidenBinBuiltinSetRoundingMode;
     defm vfwsub : RVVFloatingWidenBinBuiltinSetRoundingMode;
+    defm xl_vfwadd : RVVBFloatingWidenBinBuiltinSetRoundingMode_XL;
+    defm xl_vfwsub : RVVBFloatingWidenBinBuiltinSetRoundingMode_XL;
 
     // 13.5. Vector Widening Floating-Point Multiply
     let Log2LMUL = [-2, -1, 0, 1, 2] in {
@@ -1641,11 +1663,18 @@ let ManualCodegen = [{
                                           [["vv", "w", "wvvu"],
                                             ["vf", "w", "wveu"]]>;
     }
+    let Log2LMUL = [-2, -1, 0, 1, 2], OverloadedName = "xl_vfwmul" in {
+      defm xl_vfwmul : RVVOutOp0Op1BuiltinSet<"vfwmul", "y",
+                                          [["vv", "Fw", "Fwvvu"],
+                                            ["vf", "Fw", "Fwveu"]]>;
+    }
   }
   // 13.3. Vector Widening Floating-Point Add/Subtract Instructions
   // Widening FP add/subtract, 2*SEW = SEW +/- SEW
   defm vfwadd : RVVFloatingWidenBinBuiltinSet;
   defm vfwsub : RVVFloatingWidenBinBuiltinSet;
+  defm xl_vfwadd : RVVBFloatingWidenBinBuiltinSet_XL;
+  defm xl_vfwsub : RVVBFloatingWidenBinBuiltinSet_XL;
 
   // 13.5. Vector Widening Floating-Point Multiply
   let Log2LMUL = [-2, -1, 0, 1, 2] in {
@@ -1653,6 +1682,12 @@ let ManualCodegen = [{
                                         [["vv", "w", "wvv"],
                                           ["vf", "w", "wve"]]>;
   }
+  let Log2LMUL = [-2, -1, 0, 1, 2], OverloadedName = "xl_vfwmul" in {
+    defm xl_vfwmul : RVVOutOp0Op1BuiltinSet<"vfwmul", "y",
+                                        [["vv", "Fw", "Fwvv"],
+                                          ["vf", "Fw", "Fwve"]]>;
+  }
+
 }
 }
 
@@ -1705,6 +1740,14 @@ let ManualCodegen = [{
     defm vfnmadd : RVVFloatingTerBuiltinSetRoundingMode;
     defm vfmsub  : RVVFloatingTerBuiltinSetRoundingMode;
     defm vfnmsub : RVVFloatingTerBuiltinSetRoundingMode;
+    defm xl_vfmacc  : RVVBFloatingTerBuiltinSetRoundingMode_XL;
+    defm xl_vfnmacc : RVVBFloatingTerBuiltinSetRoundingMode_XL;
+    defm xl_vfmsac  : RVVBFloatingTerBuiltinSetRoundingMode_XL;
+    defm xl_vfnmsac : RVVBFloatingTerBuiltinSetRoundingMode_XL;
+    defm xl_vfmadd  : RVVBFloatingTerBuiltinSetRoundingMode_XL;
+    defm xl_vfnmadd : RVVBFloatingTerBuiltinSetRoundingMode_XL;
+    defm xl_vfmsub  : RVVBFloatingTerBuiltinSetRoundingMode_XL;
+    defm xl_vfnmsub : RVVBFloatingTerBuiltinSetRoundingMode_XL;
   }
   // 13.6. Vector Single-Width Floating-Point Fused Multiply-Add Instructions
   defm vfmacc  : RVVFloatingTerBuiltinSet;
@@ -1715,6 +1758,14 @@ let ManualCodegen = [{
   defm vfnmadd : RVVFloatingTerBuiltinSet;
   defm vfmsub  : RVVFloatingTerBuiltinSet;
   defm vfnmsub : RVVFloatingTerBuiltinSet;
+  defm xl_vfmacc  : RVVBFloatingTerBuiltinSet_XL;
+  defm xl_vfnmacc : RVVBFloatingTerBuiltinSet_XL;
+  defm xl_vfmsac  : RVVBFloatingTerBuiltinSet_XL;
+  defm xl_vfnmsac : RVVBFloatingTerBuiltinSet_XL;
+  defm xl_vfmadd  : RVVBFloatingTerBuiltinSet_XL;
+  defm xl_vfnmadd : RVVBFloatingTerBuiltinSet_XL;
+  defm xl_vfmsub  : RVVBFloatingTerBuiltinSet_XL;
+  defm xl_vfnmsub : RVVBFloatingTerBuiltinSet_XL;
 }
 
 let ManualCodegen = [{
@@ -1768,6 +1819,12 @@ let ManualCodegen = [{
     defm vfwmaccbf16 : RVVOutOp1Op2BuiltinSet<"vfwmaccbf16", "y",
                                               [["vv", "Fw", "FwFwvvu"],
                                                ["vf", "Fw", "FwFwevu"]]>;
+
+    // Vector Nuclei BF16 widening multiply-accumulate
+    defm xl_vfwmacc  : RVVBFloatingWidenTerBuiltinSetRoundingMode_XL;
+    defm xl_vfwnmacc : RVVBFloatingWidenTerBuiltinSetRoundingMode_XL;
+    defm xl_vfwmsac  : RVVBFloatingWidenTerBuiltinSetRoundingMode_XL;
+    defm xl_vfwnmsac : RVVBFloatingWidenTerBuiltinSetRoundingMode_XL;
   }
   // 13.7. Vector Widening Floating-Point Fused Multiply-Add Instructions
   defm vfwmacc  : RVVFloatingWidenTerBuiltinSet;
@@ -1782,6 +1839,12 @@ let ManualCodegen = [{
   defm vfwmaccbf16 : RVVOutOp1Op2BuiltinSet<"vfwmaccbf16", "y",
                                             [["vv", "Fw", "FwFwvv"],
                                              ["vf", "Fw", "FwFwev"]]>;
+
+  // Vector Nuclei BF16 widening multiply-accumulate
+  defm xl_vfwmacc  : RVVBFloatingWidenTerBuiltinSet_XL;
+  defm xl_vfwnmacc : RVVBFloatingWidenTerBuiltinSet_XL;
+  defm xl_vfwmsac  : RVVBFloatingWidenTerBuiltinSet_XL;
+  defm xl_vfwnmsac : RVVBFloatingWidenTerBuiltinSet_XL;
 }
 
 }
@@ -1833,19 +1896,32 @@ let ManualCodegen = [{
   let HasFRMRoundModeOp = 1 in {
     // 13.8. Vector Floating-Point Square-Root Instruction
     defm vfsqrt : RVVOutBuiltinSet<"vfsqrt", "xfd", [["v", "v", "vvu"]]>;
+    let RequiredFeatures = ["Xxlvfbf"] , OverloadedName = "xl_vfsqrt" in
+      defm xl_vfsqrt : RVVOutBuiltinSet<"vfsqrt", "y", [["v", "v", "vvu"]]>;
 
     // 13.10. Vector Floating-Point Reciprocal Estimate Instruction
     defm vfrec7 : RVVOutBuiltinSet<"vfrec7", "xfd", [["v", "v", "vvu"]]>;
+    let RequiredFeatures = ["Xxlvfbf"] , OverloadedName = "xl_vfrec7" in
+      defm xl_vfrec7 : RVVOutBuiltinSet<"vfrec7", "y", [["v", "v", "vvu"]]>;
   }
   // 13.8. Vector Floating-Point Square-Root Instruction
   defm vfsqrt : RVVOutBuiltinSet<"vfsqrt", "xfd", [["v", "v", "vv"]]>;
+  let RequiredFeatures = ["Xxlvfbf"] , OverloadedName = "xl_vfsqrt" in
+    defm xl_vfsqrt : RVVOutBuiltinSet<"vfsqrt", "y", [["v", "v", "vv"]]>;
 
   // 13.10. Vector Floating-Point Reciprocal Estimate Instruction
   defm vfrec7 : RVVOutBuiltinSet<"vfrec7", "xfd", [["v", "v", "vv"]]>;
+  let RequiredFeatures = ["Xxlvfbf"] , OverloadedName = "xl_vfrec7" in
+    defm xl_vfrec7 : RVVOutBuiltinSet<"vfrec7", "y", [["v", "v", "vv"]]>;
+
 }
 
 // 13.9. Vector Floating-Point Reciprocal Square-Root Estimate Instruction
 def vfrsqrt7 : RVVFloatingUnaryVVBuiltin;
+
+let RequiredFeatures = ["Xxlvfbf"] , OverloadedName = "xl_vfrsqrt7" in {
+  defm xl_vfrsqrt7 : RVVOutBuiltinSet<"vfrsqrt7", "y", [["v", "v", "vv"]]>;
+}
 
 // 13.11. Vector Floating-Point MIN/MAX Instructions
 defm vfmin : RVVFloatingBinBuiltinSet;
@@ -1859,6 +1935,11 @@ defm vfsgnjx : RVVFloatingBinBuiltinSet;
 defm vfneg_v : RVVPseudoVFUnaryBuiltin<"vfsgnjn", "xfd">;
 defm vfabs_v : RVVPseudoVFUnaryBuiltin<"vfsgnjx", "xfd">;
 
+let RequiredFeatures = ["Xxlvfbf"] in {
+  defm xl_vfneg_v : RVVPseudoVFUnaryBuiltin<"vfsgnjn", "y">;
+  defm xl_vfabs_v : RVVPseudoVFUnaryBuiltin<"vfsgnjx", "y">;
+}
+
 // 13.13. Vector Floating-Point Compare Instructions
 let MaskedPolicyScheme = HasPassthruOperand,
     HasTailPolicy = false in {
@@ -1868,11 +1949,23 @@ defm vmflt : RVVFloatingMaskOutBuiltinSet;
 defm vmfle : RVVFloatingMaskOutBuiltinSet;
 defm vmfgt : RVVFloatingMaskOutBuiltinSet;
 defm vmfge : RVVFloatingMaskOutBuiltinSet;
+defm xl_vmfeq : RVVBFloatingMaskOutBuiltinSet_XL;
+defm xl_vmfne : RVVBFloatingMaskOutBuiltinSet_XL;
+defm xl_vmflt : RVVBFloatingMaskOutBuiltinSet_XL;
+defm xl_vmfle : RVVBFloatingMaskOutBuiltinSet_XL;
+defm xl_vmfgt : RVVBFloatingMaskOutBuiltinSet_XL;
+defm xl_vmfge : RVVBFloatingMaskOutBuiltinSet_XL;
 }
 
 // 13.14. Vector Floating-Point Classify Instruction
 let Name = "vfclass_v", UnMaskedPolicyScheme = HasPassthruOperand in
   def vfclass : RVVOp0Builtin<"Uv", "Uvv", "xfd">;
+
+let RequiredFeatures = ["Xxlvfbf"] in {
+  let UnMaskedPolicyScheme = HasPassthruOperand, OverloadedName = "xl_vfclass" in {
+    defm xl_vfclass : RVVBuiltinSet<"vfclass", "y", [["v","Uv", "Uvv"]], [0] >;
+  }
+}
 
 // 13.15. Vector Floating-Point Merge Instruction
 // C/C++ Operand: (mask, op1, op2, vl), Builtin: (op1, op2, mask, vl)
@@ -1887,11 +1980,15 @@ let HasMasked = false,
     }] in {
   defm vmerge : RVVOutOp1BuiltinSet<"vmerge", "fd",
                                     [["vvm", "v", "vvvm"]]>;
+  let RequiredFeatures = ["Xxlvfbf"], OverloadedName = "xl_vmerge" in
+    defm xl_vmerge : RVVOutOp1BuiltinSet<"vmerge", "y", [["vvm", "v", "vvvm"]]>;
   let RequiredFeatures = ["Zvfhmin"] in
     defm vmerge : RVVOutOp1BuiltinSet<"vmerge", "x",
                                       [["vvm", "v", "vvvm"]]>;
   defm vfmerge : RVVOutOp1BuiltinSet<"vfmerge", "xfd",
                                      [["vfm", "v", "vvem"]]>;
+  let RequiredFeatures = ["Xxlvfbf"], OverloadedName = "xl_vfmerge" in
+    defm xl_vfmerge : RVVOutOp1BuiltinSet<"vfmerge", "y", [["vfm", "v", "vvem"]]>;
 }
 
 // 13.16. Vector Floating-Point Move Instruction
@@ -1908,6 +2005,9 @@ let UnMaskedPolicyScheme = HasPassthruOperand in {
 def vfcvt_rtz_xu_f_v : RVVConvToUnsignedBuiltin<"vfcvt_rtz_xu">;
 def vfcvt_rtz_x_f_v : RVVConvToSignedBuiltin<"vfcvt_rtz_x">;
 
+defm : RVVConvBuiltinSet_XL<"xl_vfcvt_rtz_xu_f_v", "y", [["Uv", "Uvv"]], "xl_vfcvt_rtz_xu">;
+defm : RVVConvBuiltinSet_XL<"xl_vfcvt_rtz_x_f_v", "y", [["Iv", "Ivv"]], "xl_vfcvt_rtz_x">;
+
 // 13.18. Widening Floating-Point/Integer Type-Convert Instructions
 let Log2LMUL = [-3, -2, -1, 0, 1, 2] in {
   def vfwcvt_rtz_xu_f_v : RVVConvToWidenUnsignedBuiltin<"vfwcvt_rtz_xu">;
@@ -1923,11 +2023,27 @@ let Log2LMUL = [-3, -2, -1, 0, 1, 2] in {
     }
 }
 
+//Nuclei Xxlvfbf - Widening BF16 Type-Convert Instructions
+let Log2LMUL = [-3, -2, -1, 0, 1, 2] in {
+  defm : RVVConvBuiltinSet_XL<"xl_vfwcvt_rtz_xu_f_v", "y", [["Uw", "Uwv"]], "xl_vfwcvt_rtz_xu">;
+  defm : RVVConvBuiltinSet_XL<"xl_vfwcvt_rtz_x_f_v", "y", [["Iw", "Iwv"]], "xl_vfwcvt_rtz_x">;
+  defm : RVVConvBuiltinSet_XL<"xl_vfwcvt_f_xu_v", "c", [["Yw", "YwUv"]], "xl_vfwcvt_f">;
+  defm : RVVConvBuiltinSet_XL<"xl_vfwcvt_f_x_v", "c", [["Yw", "Ywv"]], "xl_vfwcvt_f">;
+  defm : RVVConvBuiltinSet_XL<"xl_vfwcvt_f_f_v","y", [["Fw","Fwv"]], "xl_vfwcvt_f">;
+}
+
 // 13.19. Narrowing Floating-Point/Integer Type-Convert Instructions
 let Log2LMUL = [-3, -2, -1, 0, 1, 2] in {
   def vfncvt_rtz_xu_f_w : RVVConvToNarrowingUnsignedBuiltin<"vfncvt_rtz_xu">;
   def vfncvt_rtz_x_f_w : RVVConvToNarrowingSignedBuiltin<"vfncvt_rtz_x">;
-  def vfncvt_rod_f_f_w : RVVConvBuiltin<"v", "vw", "xf", "vfncvt_rod_f">;
+  def vfncvt_rod_f_f_w : RVVConvBuiltin<"v", "vw", "xfy", "vfncvt_rod_f">;
+}
+
+// Nuclei Xxlvfbf - Narrowing BF16 Type-Convert Instructions
+let Log2LMUL = [-3, -2, -1, 0, 1, 2] in {
+  defm : RVVConvBuiltinSet_XL<"xl_vfncvt_rtz_xu_f_w", "c", [["Uv", "UvYw"]], "xl_vfncvt_rtz_xu">;
+  defm : RVVConvBuiltinSet_XL<"xl_vfncvt_rtz_x_f_w", "c", [["Iv", "IvYw"]], "xl_vfncvt_rtz_x">;
+  defm : RVVConvBuiltinSet_XL<"xl_vfncvt_rod_f_f_w", "y", [["v", "vw"]], "xl_vfncvt_rod_f">;
 }
 
 // Zvfbfmin - Vector convert BF16 to FP32
@@ -1992,6 +2108,12 @@ let ManualCodegen = [{
         RVVConvBuiltinSet<"vfcvt_f_xu_v", "sil", [["Fv", "FvUvu"]]>;
     }
 
+    // Nuclei Xxlvfbf Single-Width BF16 Type-Convert Instructions
+    defm : RVVConvBuiltinSet_XL<"xl_vfcvt_x_f_v", "y", [["Iv", "Ivvu"]], "xl_vfcvt_x">;
+    defm : RVVConvBuiltinSet_XL<"xl_vfcvt_xu_f_v", "y", [["Uv", "Uvvu"]], "xl_vfcvt_xu">;
+    defm : RVVConvBuiltinSet_XL<"xl_vfcvt_f_x_v", "y", [["v", "vIvu"]], "xl_vfcvt_f">;
+    defm : RVVConvBuiltinSet_XL<"xl_vfcvt_f_xu_v", "y", [["v", "vUvu"]], "xl_vfcvt_f">;
+
     // 13.18. Widening Floating-Point/Integer Type-Convert Instructions
     let Log2LMUL = [-3, -2, -1, 0, 1, 2] in {
       let OverloadedName = "vfwcvt_x" in
@@ -2000,6 +2122,11 @@ let ManualCodegen = [{
       let OverloadedName = "vfwcvt_xu" in
         defm :
           RVVConvBuiltinSet<"vfwcvt_xu_f_v", "xf", [["Uw", "Uwvu"]]>;
+    }
+
+    let Log2LMUL = [-3, -2, -1, 0, 1, 2] in {
+      defm : RVVConvBuiltinSet_XL<"xl_vfwcvt_x_f_v", "y", [["Iw", "Iwvu"]], "xl_vfwcvt_x">;
+      defm : RVVConvBuiltinSet_XL<"xl_vfwcvt_xu_f_v", "y", [["Uw", "Uwvu"]], "xl_vfwcvt_xu">;
     }
     // 13.19. Narrowing Floating-Point/Integer Type-Convert Instructions
     let Log2LMUL = [-3, -2, -1, 0, 1, 2] in {
@@ -2022,6 +2149,15 @@ let ManualCodegen = [{
       }
     }
 
+    // Nuclei Xxlvfbf - Narrowing BF16 Type-Convert Instructions
+    let Log2LMUL = [-3, -2, -1, 0, 1, 2] in {
+        defm : RVVConvBuiltinSet_XL<"xl_vfncvt_x_f_w", "c", [["Iv", "IvYwu"]], "xl_vfncvt_x">;
+        defm : RVVConvBuiltinSet_XL<"xl_vfncvt_xu_f_w", "c", [["Uv", "UvYwu"]], "xl_vfncvt_xu">;
+        defm : RVVConvBuiltinSet_XL<"xl_vfncvt_f_x_w", "y", [["v", "vIwu"]], "xl_vfncvt_f">;
+        defm : RVVConvBuiltinSet_XL<"xl_vfncvt_f_xu_w", "y", [["v", "vUwu"]], "xl_vfncvt_f">;
+        defm : RVVConvBuiltinSet_XL<"xl_vfncvt_f_f_w", "y", [["v", "vwu"]], "xl_vfncvt_f">;
+    }
+
     // Zvfbfmin - Vector convert FP32 to BF16
     let Log2LMUL = [-2, -1, 0, 1, 2],
         OverloadedName = "vfncvtbf16_f" in
@@ -2042,6 +2178,12 @@ let ManualCodegen = [{
       RVVConvBuiltinSet<"vfcvt_f_xu_v", "sil", [["Fv", "FvUv"]]>;
   }
 
+  // Nuclei Xxlvfbf Single-Width BF16 Type-Convert Instructions
+  defm : RVVConvBuiltinSet_XL<"xl_vfcvt_x_f_v", "y", [["Iv", "Ivv"]], "xl_vfcvt_x">;
+  defm : RVVConvBuiltinSet_XL<"xl_vfcvt_xu_f_v", "y", [["Uv", "Uvv"]], "xl_vfcvt_xu">;
+  defm : RVVConvBuiltinSet_XL<"xl_vfcvt_f_x_v", "y", [["v", "vIv"]], "xl_vfcvt_f">;
+  defm : RVVConvBuiltinSet_XL<"xl_vfcvt_f_xu_v", "y", [["v", "vUv"]], "xl_vfcvt_f">;
+
   // 13.18. Widening Floating-Point/Integer Type-Convert Instructions
   let Log2LMUL = [-3, -2, -1, 0, 1, 2] in {
     let OverloadedName = "vfwcvt_x" in
@@ -2050,6 +2192,11 @@ let ManualCodegen = [{
     let OverloadedName = "vfwcvt_xu" in
       defm :
         RVVConvBuiltinSet<"vfwcvt_xu_f_v", "xf", [["Uw", "Uwv"]]>;
+  }
+
+  let Log2LMUL = [-3, -2, -1, 0, 1, 2] in {
+    defm : RVVConvBuiltinSet_XL<"xl_vfwcvt_x_f_v", "y", [["Iw", "Iwv"]], "xl_vfwcvt_x">;
+    defm : RVVConvBuiltinSet_XL<"xl_vfwcvt_xu_f_v", "y", [["Uw", "Uwv"]], "xl_vfwcvt_xu">;
   }
   // 13.19. Narrowing Floating-Point/Integer Type-Convert Instructions
   let Log2LMUL = [-3, -2, -1, 0, 1, 2] in {
@@ -2070,6 +2217,15 @@ let ManualCodegen = [{
       let RequiredFeatures = ["Zvfhmin"] in
       defm : RVVConvBuiltinSet<"vfncvt_f_f_w", "x", [["v", "vw"]]>;
     }
+  }
+
+  // Nuclei xxlvfbf - Narrowing BF16 Type-Convert Instructions
+  let Log2LMUL = [-3, -2, -1, 0, 1, 2] in {
+    defm : RVVConvBuiltinSet_XL<"xl_vfncvt_x_f_w", "c", [["Iv", "IvYw"]], "xl_vfncvt_x">;
+    defm : RVVConvBuiltinSet_XL<"xl_vfncvt_xu_f_w", "c", [["Uv", "UvYw"]], "xl_vfncvt_xu">;
+    defm : RVVConvBuiltinSet_XL<"xl_vfncvt_f_x_w", "y", [["v", "vIw"]], "xl_vfncvt_f">;
+    defm : RVVConvBuiltinSet_XL<"xl_vfncvt_f_xu_w", "y", [["v", "vUw"]], "xl_vfncvt_f">;
+    defm : RVVConvBuiltinSet_XL<"xl_vfncvt_f_f_w", "y", [["v", "vw"]], "xl_vfncvt_f">;
   }
 
   // Zvfbfmin - Vector convert FP32 to BF16
@@ -2105,6 +2261,8 @@ let HasMaskedOffOperand = true in {
 // 14.3. Vector Single-Width Floating-Point Reduction Instructions
 defm vfredmax : RVVFloatingReductionBuiltin;
 defm vfredmin : RVVFloatingReductionBuiltin;
+defm xl_vfredmax : RVVFloatingReductionBuiltin_XL;
+defm xl_vfredmin : RVVFloatingReductionBuiltin_XL;
 let ManualCodegen = [{
   {
     // LLVM intrinsic
@@ -2151,18 +2309,26 @@ let ManualCodegen = [{
     // 14.3. Vector Single-Width Floating-Point Reduction Instructions
     defm vfredusum : RVVFloatingReductionBuiltinRoundingMode;
     defm vfredosum : RVVFloatingReductionBuiltinRoundingMode;
+    defm xl_vfredusum : RVVFloatingReductionBuiltinRoundingMode_XL;
+    defm xl_vfredosum : RVVFloatingReductionBuiltinRoundingMode_XL;
 
     // 14.4. Vector Widening Floating-Point Reduction Instructions
     defm vfwredusum : RVVFloatingWidenReductionBuiltinRoundingMode;
     defm vfwredosum : RVVFloatingWidenReductionBuiltinRoundingMode;
+    defm xl_vfwredusum : RVVFloatingWidenReductionBuiltinRoundingMode_XL;
+    defm xl_vfwredosum : RVVFloatingWidenReductionBuiltinRoundingMode_XL;
   }
   // 14.3. Vector Single-Width Floating-Point Reduction Instructions
   defm vfredusum : RVVFloatingReductionBuiltin;
   defm vfredosum : RVVFloatingReductionBuiltin;
+  defm xl_vfredusum : RVVFloatingReductionBuiltin_XL;
+  defm xl_vfredosum : RVVFloatingReductionBuiltin_XL;
 
   // 14.4. Vector Widening Floating-Point Reduction Instructions
   defm vfwredusum : RVVFloatingWidenReductionBuiltin;
   defm vfwredosum : RVVFloatingWidenReductionBuiltin;
+  defm xl_vfwredusum : RVVFloatingWidenReductionBuiltin_XL;
+  defm xl_vfwredosum : RVVFloatingWidenReductionBuiltin_XL;
 }
 }
 
@@ -2242,25 +2408,29 @@ let HasMasked = false, MaskedPolicyScheme = NonePolicy in {
 // 16.3. Vector Slide Instructions
 // 16.3.1. Vector Slideup Instructions
 defm vslideup   : RVVSlideUpBuiltinSet;
+defm xl_vslideup   : RVVSlideUpBuiltinSet_XL;
 // 16.3.2. Vector Slidedown Instructions
 defm vslidedown : RVVSlideDownBuiltinSet;
+defm xl_vslidedown : RVVSlideDownBuiltinSet_XL;
 
 // 16.3.3. Vector Slide1up Instructions
 let UnMaskedPolicyScheme = HasPassthruOperand in {
 defm vslide1up : RVVSlideOneBuiltinSet;
 defm vfslide1up : RVVFloatingBinVFBuiltinSet;
+defm xl_vfslide1up : RVVBFloatingBinVFBuiltinSet_XL;
 
 // 16.3.4. Vector Slide1down Instruction
 defm vslide1down : RVVSlideOneBuiltinSet;
 defm vfslide1down : RVVFloatingBinVFBuiltinSet;
+defm xl_vfslide1down : RVVBFloatingBinVFBuiltinSet_XL;
 
 // 16.4. Vector Register Gather Instructions
 // signed and floating type
-defm vrgather : RVVOutBuiltinSet<"vrgather_vv", "csilxfd",
+defm vrgather : RVVOutBuiltinSet<"vrgather_vv", "csilxfdy",
                                  [["vv", "v", "vvUv"]]>;
-defm vrgather : RVVOutBuiltinSet<"vrgather_vx", "csilxfd",
+defm vrgather : RVVOutBuiltinSet<"vrgather_vx", "csilxfdy",
                                  [["vx", "v", "vvz"]]>;
-defm vrgatherei16 : RVVOutBuiltinSet<"vrgatherei16_vv", "csilxfd",
+defm vrgatherei16 : RVVOutBuiltinSet<"vrgatherei16_vv", "csilxfdy",
                                      [["vv", "v", "vv(Log2EEW:4)Uv"]]>;
 // unsigned type
 defm vrgather : RVVOutBuiltinSet<"vrgather_vv", "csil",
@@ -2284,6 +2454,9 @@ let HasMasked = false,
   // signed and floating type
   defm vcompress : RVVOutBuiltinSet<"vcompress", "csilxfd",
                                     [["vm", "v", "vvm"]]>;
+  let RequiredFeatures = ["Xxlvfbf"], OverloadedName = "xl_vcompress" in
+    defm xl_vcompress : RVVOutBuiltinSet<"vcompress", "y",
+                                      [["vm", "v", "vvm"]]>;
   // unsigned type
   defm vcompress : RVVOutBuiltinSet<"vcompress", "csil",
                                     [["vm", "Uv", "UvUvm"]]>;

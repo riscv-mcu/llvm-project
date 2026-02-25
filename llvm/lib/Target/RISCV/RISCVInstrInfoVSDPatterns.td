@@ -1386,7 +1386,7 @@ defm : VPatFPSetCCSDNode_VV_VF_FV<SETOLE, "PseudoVMFLE", "PseudoVMFGE">;
 // Floating-point vselects:
 // 11.15. Vector Integer Merge Instructions
 // 13.15. Vector Floating-Point Merge Instruction
-foreach fvti = !listconcat(AllFloatVectors, AllBFloatVectors) in {
+foreach fvti = AllFloatAndBF16Vectors in {
   defvar ivti = GetIntVTypeInfo<fvti>.Vti;
   let Predicates = GetVTypePredicates<ivti>.Predicates in {
     def : Pat<(fvti.Vector (vselect (fvti.Mask V0), fvti.RegClass:$rs1,
@@ -1395,7 +1395,12 @@ foreach fvti = !listconcat(AllFloatVectors, AllBFloatVectors) in {
                    (fvti.Vector (IMPLICIT_DEF)),
                    fvti.RegClass:$rs2, fvti.RegClass:$rs1, (fvti.Mask V0),
                    fvti.AVL, fvti.Log2SEW)>;
+  }
+}
 
+foreach fvti = AllFloatVectors in {
+  defvar ivti = GetIntVTypeInfo<fvti>.Vti;
+  let Predicates = GetVTypePredicates<ivti>.Predicates in {
     def : Pat<(fvti.Vector (vselect (fvti.Mask V0),
                                     (SplatFPOp (SelectFPImm (XLenVT GPR:$imm))),
                                     fvti.RegClass:$rs2)),
@@ -1410,9 +1415,7 @@ foreach fvti = !listconcat(AllFloatVectors, AllBFloatVectors) in {
                    (fvti.Vector (IMPLICIT_DEF)),
                    fvti.RegClass:$rs2, 0, (fvti.Mask V0), fvti.AVL, fvti.Log2SEW)>;
   }
-}
 
-foreach fvti = AllFloatVectors in {
   let Predicates = GetVTypePredicates<fvti>.Predicates in
     def : Pat<(fvti.Vector (vselect (fvti.Mask V0),
                                     (SplatFPOp fvti.ScalarRegClass:$rs1),
@@ -1474,7 +1477,7 @@ foreach fvtiToFWti = AllWidenableBFloatToFloatVectors in {
 //===----------------------------------------------------------------------===//
 // Vector Element Extracts
 //===----------------------------------------------------------------------===//
-foreach vti = AllFloatVectors in {
+foreach vti = AllFloatAndBF16Vectors in {
   defvar vmv_f_s_inst = !cast<Instruction>(!strconcat("PseudoVFMV_",
                                                        vti.ScalarSuffix,
                                                        "_S_", vti.LMul.MX));

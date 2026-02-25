@@ -233,7 +233,7 @@ public:
   bool hasVInstructionsI64() const { return HasStdExtZve64x; }
   bool hasVInstructionsF16Minimal() const { return HasStdExtZvfhmin; }
   bool hasVInstructionsF16() const { return HasStdExtZvfh; }
-  bool hasVInstructionsBF16() const { return HasStdExtZvfbfmin; }
+  bool hasVInstructionsBF16() const { return HasStdExtZvfbfmin || HasVendorXxlvfbf; }
   bool hasVInstructionsF32() const { return HasStdExtZve32f; }
   bool hasVInstructionsF64() const { return HasStdExtZve64d; }
   // F16 and F64 both require F32.

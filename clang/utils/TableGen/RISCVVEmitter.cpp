@@ -660,6 +660,7 @@ void RVVEmitter::createRVVIntrinsics(
               .Case("Xsfvqmaccdod", RVV_REQ_Xsfvqmaccdod)
               .Case("Xsfvqmaccqoq", RVV_REQ_Xsfvqmaccqoq)
               .Case("xxlvqmacc", RVV_REQ_Xxlvqmacc)
+              .Case("xxlvfbf", RVV_REQ_Xxlvfbf)
               .Case("Zvbb", RVV_REQ_Zvbb)
               .Case("Zvbc", RVV_REQ_Zvbc)
               .Case("Zvkb", RVV_REQ_Zvkb)

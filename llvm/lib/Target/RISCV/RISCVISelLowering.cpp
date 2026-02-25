@@ -1132,6 +1132,7 @@ RISCVTargetLowering::RISCVTargetLowering(const TargetMachine &TM,
         setOperationAction({ISD::VP_MERGE, ISD::VP_SELECT, ISD::SELECT}, VT,
                            Custom);
         setOperationAction(ISD::SELECT_CC, VT, Expand);
+        setOperationAction(ISD::VP_STORE, VT, Custom);
         // TODO: Promote to fp32.
       }
     }

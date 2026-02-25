@@ -83,6 +83,8 @@
 //      elements of the same width
 //   F: given a vector type, compute the vector type with floating-point type
 //      elements of the same width
+//   Y: given a vector type, compute the vector type with bfloat16 type elements
+//      of the same width
 //   S: given a vector type, computes its equivalent one for LMUL=1. This is a
 //      no-op if the vector was already LMUL=1
 //   (Log2EEW:Value): Log2EEW value could be 3/4/5/6 (8/16/32/64), given a
@@ -573,6 +575,11 @@ let UnMaskedPolicyScheme = HasPassthruOperand,
                                [["vx","v", "vvz"]]>;
     defm "" : RVVOutBuiltinSet<NAME, "csil",
                                [["vx","Uv", "UvUvz"]]>;
+  }
+  let RequiredFeatures = ["Xxlvfbf"], OverloadedName = "xl_vslidedown" in {
+    multiclass RVVSlideDownBuiltinSet_XL {
+      defm "" : RVVOutBuiltinSet<!substr(NAME, 3), "y",[["vx","v", "vvz"]]>;
+    }
   }
 }
 

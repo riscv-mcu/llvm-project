@@ -1071,6 +1071,7 @@ multiclass VPatBinaryFPVL_VV_VF_RM<SDPatternOperator vop, string instruction_nam
   }
 }
 
+
 multiclass VPatBinaryFPVL_R_VF<SDPatternOperator vop, string instruction_name,
                                bit isSEWAware = 0> {
   foreach fvti = AllFloatVectors in {
@@ -2605,10 +2606,10 @@ foreach vti = AllFloatVectors in {
   }
 }
 
-foreach fvti = !listconcat(AllFloatVectors, AllBFloatVectors) in {
   // Floating-point vselects:
   // 11.15. Vector Integer Merge Instructions
   // 13.15. Vector Floating-Point Merge Instruction
+foreach fvti = AllFloatAndBF16Vectors in {
   defvar ivti = GetIntVTypeInfo<fvti>.Vti;
   let Predicates = GetVTypePredicates<ivti>.Predicates in {
   def : Pat<(fvti.Vector (riscv_vmerge_vl (fvti.Mask V0),
@@ -2619,7 +2620,13 @@ foreach fvti = !listconcat(AllFloatVectors, AllBFloatVectors) in {
             (!cast<Instruction>("PseudoVMERGE_VVM_"#fvti.LMul.MX)
                  fvti.RegClass:$merge, fvti.RegClass:$rs2, fvti.RegClass:$rs1, (fvti.Mask V0),
                  GPR:$vl, fvti.Log2SEW)>;
+  }
+}
 
+
+foreach fvti = AllFloatVectors in {
+  defvar ivti = GetIntVTypeInfo<fvti>.Vti;
+  let Predicates = GetVTypePredicates<ivti>.Predicates in {
   def : Pat<(fvti.Vector (riscv_vmerge_vl (fvti.Mask V0),
                                           (SplatFPOp (SelectFPImm (XLenVT GPR:$imm))),
                                           fvti.RegClass:$rs2,
@@ -2671,7 +2678,7 @@ foreach fvti = !listconcat(AllFloatVectors, AllBFloatVectors) in {
   }
 }
 
-foreach fvti = AllFloatVectors in {
+foreach fvti = AllFloatAndBF16Vectors in {
   let Predicates = GetVTypePredicates<fvti>.Predicates in {
     def : Pat<(fvti.Vector (riscv_vfmv_v_f_vl
                            fvti.Vector:$passthru, (fvti.Scalar fvti.ScalarRegClass:$rs2), VLOpFrag)),
@@ -2992,7 +2999,20 @@ foreach vti = NoGroupFloatVectors in {
   }
 }
 
-foreach vti = AllFloatVectors in {
+foreach vti = NoGroupBFloatVectors in {
+  let Predicates = GetVTypePredicates<vti>.Predicates in {
+    def : Pat<(vti.Vector (riscv_vfmv_s_f_vl (vti.Vector vti.RegClass:$merge),
+                                             (vti.Scalar (fpimm0)),
+                                             VLOpFrag)),
+              (PseudoVMV_S_X $merge, (XLenVT X0), GPR:$vl, vti.Log2SEW)>;
+    def : Pat<(vti.Vector (riscv_vfmv_s_f_vl (vti.Vector vti.RegClass:$merge),
+                                             (vti.Scalar (SelectFPImm (XLenVT GPR:$imm))),
+                                             VLOpFrag)),
+              (PseudoVMV_S_X $merge, GPR:$imm, GPR:$vl, vti.Log2SEW)>;
+  }
+}
+
+foreach vti = AllFloatAndBF16Vectors in {
   let Predicates = GetVTypePredicates<vti>.Predicates in {
     def : Pat<(vti.Vector (riscv_vfmv_s_f_vl (vti.Vector vti.RegClass:$merge),
                                              vti.ScalarRegClass:$rs1,

@@ -135,7 +135,6 @@ bool Sema::checkArgCountAtLeast(CallExpr *Call, unsigned MinArgCount) {
   unsigned ArgCount = Call->getNumArgs();
   if (ArgCount >= MinArgCount)
     return false;
-
   return Diag(Call->getEndLoc(), diag::err_typecheck_call_too_few_args)
          << 0 /*function call*/ << MinArgCount << ArgCount
          << /*is non object*/ 0 << Call->getSourceRange();

@@ -212,6 +212,7 @@ void RISCVIntrinsicManagerImpl::ConstructRVVIntrinsics(
       {"xsfvqmaccdod", RVV_REQ_Xsfvqmaccdod},
       {"xsfvqmaccqoq", RVV_REQ_Xsfvqmaccqoq},
       {"xxlvqmacc", RVV_REQ_Xxlvqmacc},
+      {"xxlvfbf", RVV_REQ_Xxlvfbf},
       {"zvbb", RVV_REQ_Zvbb},
       {"zvbc", RVV_REQ_Zvbc},
       {"zvkb", RVV_REQ_Zvkb},
@@ -1392,8 +1393,8 @@ void SemaRISCV::checkRVVTypeSupport(QualType Ty, SourceLocation Loc, Decl *D,
            !FeatureMap.lookup("zvfhmin"))
     Diag(Loc, diag::err_riscv_type_requires_extension, D)
         << Ty << "zvfh or zvfhmin";
-  else if (Info.ElementType->isBFloat16Type() && !FeatureMap.lookup("zvfbfmin"))
-    Diag(Loc, diag::err_riscv_type_requires_extension, D) << Ty << "zvfbfmin";
+  else if (Info.ElementType->isBFloat16Type() && !FeatureMap.lookup("zvfbfmin") && !FeatureMap.lookup("xxlvfbf"))
+    Diag(Loc, diag::err_riscv_type_requires_extension, D) << Ty << "zvfbfmin or xxlvfbf";
   else if (Info.ElementType->isSpecificBuiltinType(BuiltinType::Float) &&
            !FeatureMap.lookup("zve32f"))
     Diag(Loc, diag::err_riscv_type_requires_extension, D) << Ty << "zve32f";

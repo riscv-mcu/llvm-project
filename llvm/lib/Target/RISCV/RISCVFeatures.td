@@ -1412,6 +1412,16 @@ def HasVendorXxlfbf
       AssemblerPredicate<(all_of FeatureVendorXxlfbf),
                          "'Xxlfbf' (Nuclei Scalar Bf16 Instructions)">;
 
+def FeatureVendorXxlvfbf
+    : RISCVExtension<"xxlvfbf", 1, 0,
+                     "'Xxlvfbf' (Nuclei Vector Bf16 Instructions)",
+                     [FeatureVendorXxlfbf,
+                      FeatureStdExtZvfbfmin]>;
+def HasVendorXxlvfbf
+    : Predicate<"Subtarget->hasVendorXxlvfbf()">,
+      AssemblerPredicate<(all_of FeatureVendorXxlvfbf),
+                         "'Xxlvfbf' (Nuclei Vector Bf16 Instructions)">;
+
 //===----------------------------------------------------------------------===//
 // LLVM specific features and extensions
 //===----------------------------------------------------------------------===//
