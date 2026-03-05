@@ -54,7 +54,7 @@ static void insertCall(Function &CurFn, StringRef Func,
       // `__builtin_return_address(0)` as an argument since
       // `__builtin_return_address(1)` is not available on these platforms.
       Instruction *RetAddr = CallInst::Create(
-          Intrinsic::getOrInsertDeclaration(&M, Intrinsic::returnaddress),
+          Intrinsic::getDeclaration(&M, Intrinsic::returnaddress),
           ConstantInt::get(Type::getInt32Ty(C), 0), "", InsertionPt);
       RetAddr->setDebugLoc(DL);
 
