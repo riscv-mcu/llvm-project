@@ -1589,3 +1589,16 @@ def FeatureForcedSWShadowStack : SubtargetFeature<
     "forced-sw-shadow-stack", "HasForcedSWShadowStack", "true",
     "Implement shadow stack with software.">;
 def HasForcedSWShadowStack : Predicate<"Subtarget->hasForcedSWShadowStack()">;
+
+//===----------------------------------------------------------------------===//
+// Nuclei auto-vectorization / auto-generation subtarget features.
+//===----------------------------------------------------------------------===//
+def FeatureAutoVecDSP : SubtargetFeature<"autovec-dsp", "EnableAutoVecDSP",
+                                         "true",
+                                         "Enable Nuclei DSP auto-vectorization.">;
+def FeatureAutoVecRVV : SubtargetFeature<"autovec-rvv", "EnableAutoVecRVV",
+                                         "true",
+                                         "Enable RVV auto-vectorization.">;
+def FeatureAutoGenXxlcz : SubtargetFeature<"autogen-xxlcz", "EnableAutoGenXxlcz",
+                                           "true",
+                                           "Enable auto-generation of Nuclei Xxlcz instructions.">;

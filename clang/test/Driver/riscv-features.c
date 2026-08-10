@@ -29,6 +29,23 @@
 // DEFAULT-NOT: "-target-feature" "-save-restore"
 // DEFAULT-NOT: "-target-feature" "+save-restore"
 
+// RUN: %clang --target=riscv32-unknown-elf -### %s -mautovec-dsp 2>&1 | FileCheck %s -check-prefix=AUTOVEC-DSP
+// RUN: %clang --target=riscv32-unknown-elf -### %s -mno-autovec-dsp 2>&1 | FileCheck %s -check-prefix=NO-AUTOVEC-DSP
+// RUN: %clang --target=riscv32-unknown-elf -### %s -mautovec-rvv 2>&1 | FileCheck %s -check-prefix=AUTOVEC-RVV
+// RUN: %clang --target=riscv32-unknown-elf -### %s -mno-autovec-rvv 2>&1 | FileCheck %s -check-prefix=NO-AUTOVEC-RVV
+// RUN: %clang --target=riscv32-unknown-elf -### %s -mautogen-xxlcz 2>&1 | FileCheck %s -check-prefix=AUTOGEN-XXLCZ
+// RUN: %clang --target=riscv32-unknown-elf -### %s -mno-autogen-xxlcz 2>&1 | FileCheck %s -check-prefix=NO-AUTOGEN-XXLCZ
+
+// AUTOVEC-DSP: "-target-feature" "+autovec-dsp"
+// NO-AUTOVEC-DSP: "-target-feature" "-autovec-dsp"
+// AUTOVEC-RVV: "-target-feature" "+autovec-rvv"
+// NO-AUTOVEC-RVV: "-target-feature" "-autovec-rvv"
+// AUTOGEN-XXLCZ: "-target-feature" "+autogen-xxlcz"
+// NO-AUTOGEN-XXLCZ: "-target-feature" "-autogen-xxlcz"
+// DEFAULT-NOT: "-target-feature" "+autovec-dsp"
+// DEFAULT-NOT: "-target-feature" "+autovec-rvv"
+// DEFAULT-NOT: "-target-feature" "+autogen-xxlcz"
+
 // RUN: %clang --target=riscv32-unknown-elf -### %s -mforced-sw-shadow-stack 2>&1 | FileCheck %s -check-prefix=FORCE-SW-SCS
 // RUN: %clang --target=riscv32-unknown-elf -### %s -mno-forced-sw-shadow-stack 2>&1 | FileCheck %s -check-prefix=NO-FORCE-SW-SCS
 // FORCE-SW-SCS: "-target-feature" "+forced-sw-shadow-stack"

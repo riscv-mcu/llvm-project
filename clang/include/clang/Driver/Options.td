@@ -8853,3 +8853,21 @@ def wasm_opt : Flag<["--"], "wasm-opt">,
   Group<m_Group>,
   HelpText<"Enable the wasm-opt optimizer (default)">,
   MarshallingInfoNegativeFlag<LangOpts<"NoWasmOpt">>;
+
+//===----------------------------------------------------------------------===//
+// Nuclei RISC-V auto-vectorization / auto-generation options.
+//===----------------------------------------------------------------------===//
+let Flags = [TargetSpecific] in {
+def mautovec_dsp : Flag<["-"], "mautovec-dsp">, Group<m_riscv_Features_Group>,
+  HelpText<"Enable Nuclei DSP auto-vectorization">;
+def mno_autovec_dsp : Flag<["-"], "mno-autovec-dsp">, Group<m_riscv_Features_Group>,
+  HelpText<"Disable Nuclei DSP auto-vectorization (default)">;
+def mautovec_rvv : Flag<["-"], "mautovec-rvv">, Group<m_riscv_Features_Group>,
+  HelpText<"Enable RVV auto-vectorization">;
+def mno_autovec_rvv : Flag<["-"], "mno-autovec-rvv">, Group<m_riscv_Features_Group>,
+  HelpText<"Disable RVV auto-vectorization (default)">;
+def mautogen_xxlcz : Flag<["-"], "mautogen-xxlcz">, Group<m_riscv_Features_Group>,
+  HelpText<"Enable auto-generation of Nuclei Xxlcz instructions">;
+def mno_autogen_xxlcz : Flag<["-"], "mno-autogen-xxlcz">, Group<m_riscv_Features_Group>,
+  HelpText<"Disable auto-generation of Nuclei Xxlcz instructions (default)">;
+} // let Flags = [TargetSpecific]
