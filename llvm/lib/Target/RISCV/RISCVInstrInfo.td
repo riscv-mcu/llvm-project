@@ -1128,6 +1128,17 @@ def AnyReg : Operand<XLenVT> {
   let ParserMatchClass = AnyRegOperand;
 }
 
+def GPR32PairOpOperand : AsmOperandClass {
+  let Name = "GPR32PairOp";
+  let RenderMethod = "addRegOperands";
+  let PredicateMethod = "isGPR32Pair";
+  let ParserMethod = "parseGPR32PairReg";
+}
+
+def GPR32PairOp : RegisterOperand<GPR32Pair> {
+  let ParserMatchClass = GPR32PairOpOperand;
+}
+
 // isCodeGenOnly = 1 to hide them from the tablegened assembly parser.
 let isCodeGenOnly = 1, hasSideEffects = 1, mayLoad = 1, mayStore = 1,
     hasNoSchedulingInfo = 1 in {
@@ -1757,6 +1768,20 @@ class StPat<PatFrag StoreOp, RVInst Inst, RegisterClass StTy,
 def : StPat<truncstorei8, SB, GPR, XLenVT>;
 def : StPat<truncstorei16, SH, GPR, XLenVT>;
 def : StPat<store, SW, GPR, i32>;
+
+let Predicates = [HasVendorXxldsp, IsRV32] in {
+/// Loads
+let isCall = 0, mayLoad = 1, mayStore = 0, Size = 8, isCodeGenOnly = 1 in
+def PseudoRV32XxldspLD : Pseudo<(outs GPR32PairOp:$dst), (ins GPR:$rs1, simm12:$imm12), []>;
+def : Pat<(v2i32 (load (AddrRegImm (XLenVT GPR:$rs1), simm12:$imm12))),
+          (PseudoRV32XxldspLD GPR:$rs1, simm12:$imm12)>;
+
+/// Stores
+let isCall = 0, mayLoad = 0, mayStore = 1, Size = 8, isCodeGenOnly = 1 in
+def PseudoRV32XxldspSD : Pseudo<(outs), (ins GPR32PairOp:$rs2, GPRNoX0:$rs1, simm12:$imm12), []>;
+def : Pat<(store (v2i32 GPR32PairOp:$rs2), (AddrRegImm (XLenVT GPR:$rs1), simm12:$imm12)),
+          (PseudoRV32XxldspSD GPR32PairOp:$rs2, GPR:$rs1, simm12:$imm12)>;
+} // Predicates = [HasVendorXxldsp, IsRV32]
 
 /// Fences
 

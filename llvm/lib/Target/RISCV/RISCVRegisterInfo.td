@@ -124,12 +124,15 @@ let RegAltNameIndices = [ABIRegAltName] in {
 def XLenVT : ValueTypeByHwMode<[RV32, RV64],
                                [i32,  i64]>;
 defvar XLenPairVT = untyped;
+def XxldspPairVT : ValueTypeByHwMode<[RV32],
+                                     [v2i32]>;
 
 // Allow f64 in GPR for ZDINX on RV64.
 def XLenFVT : ValueTypeByHwMode<[RV64],
                                 [f64]>;
 def XLenPairFVT : ValueTypeByHwMode<[RV32],
                                     [f64]>;
+
 def XLenRI : RegInfoByHwMode<
       [RV32,              RV64],
       [RegInfo<32,32,32>, RegInfo<64,64,64>]>;
@@ -615,6 +618,20 @@ def GPRF16  : RISCVRegisterClass<[f16], 16, (add GPR)>;
 def GPRF32  : RISCVRegisterClass<[f32], 32, (add GPR)>;
 } // RegInfos = XLenRI
 
+let RegInfos = RegInfoByHwMode<[RV32],
+                               [RegInfo<64, 64, 32>]>,
+    DecoderMethod = "DecodeGPR32PairRegisterClass" in
+def GPR32Pair : RISCVRegisterClass<[XxldspPairVT, XLenPairVT], 64, (add
+    X10_X11, X12_X13, X14_X15, X16_X17,
+    X6_X7,
+    X28_X29, X30_X31,
+    X8_X9,
+    X18_X19, X20_X21, X22_X23, X24_X25, X26_X27,
+    X0_Pair, X2_X3, X4_X5
+)>;
+def GPR32PairNoX0 :
+    RISCVRegisterClass<[XxldspPairVT, XLenPairVT], 64,
+                       (sub GPR32Pair, X0_Pair)>;
 // The register class is added for inline assembly for vector mask types.
 def VM : VReg<VMaskVTs, (add VR), 1>;
 

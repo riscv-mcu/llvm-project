@@ -142,7 +142,9 @@ RISCVTargetLowering::RISCVTargetLowering(const TargetMachine &TM,
     else
       addRegisterClass(MVT::f64, &RISCV::GPRPairRegClass);
   }
-
+  if (!Subtarget.is64Bit() && Subtarget.hasVendorXxldsp() &&
+      !Subtarget.hasVInstructions())
+    addRegisterClass(MVT::v2i32, &RISCV::GPR32PairRegClass);
   static const MVT::SimpleValueType BoolVecVTs[] = {
       MVT::nxv1i1,  MVT::nxv2i1,  MVT::nxv4i1, MVT::nxv8i1,
       MVT::nxv16i1, MVT::nxv32i1, MVT::nxv64i1};
@@ -614,6 +616,18 @@ RISCVTargetLowering::RISCVTargetLowering(const TargetMachine &TM,
                        Subtarget.isSoftFPABI() ? LibCall : Custom);
     setOperationAction(ISD::FP_TO_FP16, MVT::f64, Custom);
     setOperationAction(ISD::FP16_TO_FP, MVT::f64, Expand);
+  }
+
+  if (!Subtarget.is64Bit() && Subtarget.hasVendorXxldsp()) {
+    setOperationAction(ISD::BITCAST, MVT::i64, Custom);
+    if (!Subtarget.hasVInstructions()) {
+      setOperationAction({ISD::BUILD_VECTOR, ISD::EXTRACT_VECTOR_ELT,
+                          ISD::INSERT_VECTOR_ELT, ISD::VECTOR_SHUFFLE},
+                         MVT::v2i32, Custom);
+      setOperationAction({ISD::ADD, ISD::SUB, ISD::MUL, ISD::AND, ISD::OR,
+                          ISD::XOR, ISD::SHL, ISD::SRA, ISD::SRL},
+                         MVT::v2i32, Expand);
+    }
   }
 
   if (Subtarget.is64Bit()) {
@@ -2381,7 +2395,9 @@ unsigned RISCVTargetLowering::getNumRegisters(LLVMContext &Context, EVT VT,
                                      std::optional<MVT> RegisterVT) const {
   // Pair inline assembly operand
   if (VT == (Subtarget.is64Bit() ? MVT::i128 : MVT::i64) && RegisterVT &&
-      *RegisterVT == MVT::Untyped)
+      (*RegisterVT == MVT::Untyped ||
+       (!Subtarget.is64Bit() && Subtarget.hasVendorXxldsp() &&
+        *RegisterVT == MVT::v2i32)))
     return 1;
 
   return TargetLowering::getNumRegisters(Context, VT, RegisterVT);
@@ -3952,6 +3968,38 @@ static SDValue lowerBuildVectorOfConstants(SDValue Op, SelectionDAG &DAG,
   return SDValue();
 }
 
+static bool isXxldspIntrinsic(unsigned IntNo) {
+  return Intrinsic::getName(static_cast<Intrinsic::ID>(IntNo))
+      .starts_with("llvm.riscv.xldsp.");
+}
+
+static bool isXxldspIntrinsicNode(const SDNode *N) {
+  if (N->getOpcode() != ISD::INTRINSIC_WO_CHAIN &&
+      N->getOpcode() != ISD::INTRINSIC_W_CHAIN &&
+      N->getOpcode() != ISD::INTRINSIC_VOID)
+    return false;
+
+  unsigned IntOpNo = N->getOpcode() == ISD::INTRINSIC_WO_CHAIN ? 0 : 1;
+  if (N->getNumOperands() <= IntOpNo)
+    return false;
+
+  auto *IntNo = dyn_cast<ConstantSDNode>(N->getOperand(IntOpNo));
+  return IntNo && isXxldspIntrinsic(IntNo->getZExtValue());
+}
+
+static bool isOnlyUsedByXxldspIntrinsic(SDValue V) {
+  bool HasUse = false;
+  for (auto UI = V.getNode()->use_begin(), UE = V.getNode()->use_end();
+       UI != UE; ++UI) {
+    if (UI.getUse().getResNo() != V.getResNo())
+      continue;
+    HasUse = true;
+    if (!isXxldspIntrinsicNode(*UI))
+      return false;
+  }
+  return HasUse;
+}
+
 static unsigned getPACKOpcode(unsigned DestBW,
                               const RISCVSubtarget &Subtarget) {
   switch (DestBW) {
@@ -4045,6 +4093,14 @@ static SDValue lowerBUILD_VECTOR(SDValue Op, SelectionDAG &DAG,
                                  const RISCVSubtarget &Subtarget) {
   MVT VT = Op.getSimpleValueType();
   assert(VT.isFixedLengthVector() && "Unexpected vector!");
+
+  if (VT == MVT::v2i32 && !Subtarget.is64Bit() &&
+      Subtarget.hasVendorXxldsp() &&
+      (!Subtarget.hasVInstructions() || isOnlyUsedByXxldspIntrinsic(Op))) {
+    assert(Op.getNumOperands() == 2 && "Unexpected v2i32 BUILD_VECTOR");
+    return DAG.getNode(RISCVISD::BuildPairI64, SDLoc(Op), VT, Op.getOperand(0),
+                       Op.getOperand(1));
+  }
 
   // If we don't have scalar f16, we need to bitcast to an i16 vector.
   if (VT.getVectorElementType() == MVT::f16 &&
@@ -5118,6 +5174,22 @@ static SDValue lowerVECTOR_SHUFFLE(SDValue Op, SelectionDAG &DAG,
   MVT VT = Op.getSimpleValueType();
   unsigned NumElts = VT.getVectorNumElements();
   ShuffleVectorSDNode *SVN = cast<ShuffleVectorSDNode>(Op.getNode());
+
+  if (VT == MVT::v2i32 && !Subtarget.is64Bit() &&
+      Subtarget.hasVendorXxldsp() && !Subtarget.hasVInstructions()) {
+    SmallVector<SDValue, 2> Elts;
+    for (unsigned I = 0; I != NumElts; ++I) {
+      int Lane = SVN->getMaskElt(I);
+      if (Lane < 0) {
+        Elts.push_back(DAG.getUNDEF(MVT::i32));
+        continue;
+      }
+      SDValue Src = Lane < 2 ? V1 : V2;
+      Elts.push_back(DAG.getNode(ISD::EXTRACT_VECTOR_ELT, DL, MVT::i32, Src,
+                                 DAG.getVectorIdxConstant(Lane % 2, DL)));
+    }
+    return DAG.getBuildVector(VT, DL, Elts);
+  }
 
   if (VT.getVectorElementType() == MVT::i1) {
     // Lower to a vror.vi of a larger element type if possible before we promote
@@ -6359,6 +6431,13 @@ SDValue RISCVTargetLowering::LowerOperation(SDValue Op,
       SDValue RetReg =
           DAG.getNode(RISCVISD::BuildPairF64, DL, MVT::f64, Lo, Hi);
       return RetReg;
+    }
+    if (VT == MVT::v2i32 && Op0VT == MVT::i64 && !Subtarget.is64Bit() &&
+        Subtarget.hasVendorXxldsp() &&
+        (!Subtarget.hasVInstructions() || isOnlyUsedByXxldspIntrinsic(Op))) {
+      SDValue Lo, Hi;
+      std::tie(Lo, Hi) = DAG.SplitScalar(Op0, DL, MVT::i32, MVT::i32);
+      return DAG.getNode(RISCVISD::BuildPairI64, DL, MVT::v2i32, Lo, Hi);
     }
 
     // Consider other scalar<->scalar casts as legal if the types are legal.
@@ -8485,6 +8564,29 @@ SDValue RISCVTargetLowering::lowerINSERT_VECTOR_ELT(SDValue Op,
   SDValue Val = Op.getOperand(1);
   SDValue Idx = Op.getOperand(2);
 
+  if (VecVT == MVT::v2i32 && !Subtarget.is64Bit() &&
+      Subtarget.hasVendorXxldsp() &&
+      (!Subtarget.hasVInstructions() || isXxldspIntrinsicNode(Vec.getNode()))) {
+    SDValue Lo = DAG.getNode(ISD::EXTRACT_VECTOR_ELT, DL, MVT::i32, Vec,
+                             DAG.getVectorIdxConstant(0, DL));
+    SDValue Hi = DAG.getNode(ISD::EXTRACT_VECTOR_ELT, DL, MVT::i32, Vec,
+                             DAG.getVectorIdxConstant(1, DL));
+    if (auto *IdxC = dyn_cast<ConstantSDNode>(Idx)) {
+      if (IdxC->getZExtValue() == 0)
+        Lo = Val;
+      else
+        Hi = Val;
+    } else {
+      MVT XLenVT = Subtarget.getXLenVT();
+      SDValue IsLo = DAG.getSetCC(DL, XLenVT, Idx,
+                                  DAG.getConstant(0, DL, Idx.getValueType()),
+                                  ISD::SETEQ);
+      Lo = DAG.getNode(ISD::SELECT, DL, MVT::i32, IsLo, Val, Lo);
+      Hi = DAG.getNode(ISD::SELECT, DL, MVT::i32, IsLo, Hi, Val);
+    }
+    return DAG.getBuildVector(VecVT, DL, {Lo, Hi});
+  }
+
   if (VecVT.getVectorElementType() == MVT::i1) {
     // FIXME: For now we just promote to an i8 vector and insert into that,
     // but this is probably not optimal.
@@ -8653,6 +8755,22 @@ SDValue RISCVTargetLowering::lowerEXTRACT_VECTOR_ELT(SDValue Op,
   EVT EltVT = Op.getValueType();
   MVT VecVT = Vec.getSimpleValueType();
   MVT XLenVT = Subtarget.getXLenVT();
+
+  if (VecVT == MVT::v2i32 && !Subtarget.is64Bit() &&
+      Subtarget.hasVendorXxldsp() &&
+      (!Subtarget.hasVInstructions() || isXxldspIntrinsicNode(Vec.getNode()))) {
+    SDValue Split =
+        DAG.getNode(RISCVISD::SplitI64, DL, DAG.getVTList(MVT::i32, MVT::i32),
+                    Vec);
+    if (auto *IdxC = dyn_cast<ConstantSDNode>(Idx))
+      return Split.getValue(IdxC->getZExtValue() == 0 ? 0 : 1);
+
+    SDValue IsLo = DAG.getSetCC(DL, Subtarget.getXLenVT(), Idx,
+                                DAG.getConstant(0, DL, Idx.getValueType()),
+                                ISD::SETEQ);
+    return DAG.getNode(ISD::SELECT, DL, EltVT, IsLo, Split.getValue(0),
+                       Split.getValue(1));
+  }
 
   if (VecVT.getVectorElementType() == MVT::i1) {
     // Use vfirst.m to extract the first bit.
@@ -12639,7 +12757,15 @@ void RISCVTargetLowering::ReplaceNodeResults(SDNode *N,
     SDValue Op0 = N->getOperand(0);
     EVT Op0VT = Op0.getValueType();
     MVT XLenVT = Subtarget.getXLenVT();
-    if (VT == MVT::i16 && Op0VT == MVT::f16 &&
+    if (VT == MVT::i64 && Op0VT == MVT::v2i32 && !Subtarget.is64Bit() &&
+        Subtarget.hasVendorXxldsp() &&
+        (!Subtarget.hasVInstructions() ||
+         isXxldspIntrinsicNode(Op0.getNode()))) {
+      SDValue NewReg = DAG.getNode(
+          RISCVISD::SplitI64, DL, DAG.getVTList(MVT::i32, MVT::i32), Op0);
+      Results.push_back(DAG.getNode(ISD::BUILD_PAIR, DL, MVT::i64,
+                                    NewReg.getValue(0), NewReg.getValue(1)));
+    } else if (VT == MVT::i16 && Op0VT == MVT::f16 &&
         Subtarget.hasStdExtZfhminOrZhinxmin()) {
       SDValue FPConv = DAG.getNode(RISCVISD::FMV_X_ANYEXTH, DL, XLenVT, Op0);
       Results.push_back(DAG.getNode(ISD::TRUNCATE, DL, MVT::i16, FPConv));
@@ -18962,6 +19088,18 @@ ArrayRef<MCPhysReg> RISCV::getArgGPRs(const RISCVABI::ABI ABI) {
   return ArrayRef(ArgIGPRs);
 }
 
+static ArrayRef<MCPhysReg> getArgGPRPairs(const RISCVABI::ABI ABI) {
+  static const MCPhysReg ArgIGPRPairs[] = {
+      RISCV::X10_X11, RISCV::X12_X13, RISCV::X14_X15, RISCV::X16_X17};
+  static const MCPhysReg ArgEGPRPairs[] = {RISCV::X10_X11, RISCV::X12_X13,
+                                           RISCV::X14_X15};
+
+  if (ABI == RISCVABI::ABI_ILP32E || ABI == RISCVABI::ABI_LP64E)
+    return ArrayRef(ArgEGPRPairs);
+
+  return ArrayRef(ArgIGPRPairs);
+}
+
 static ArrayRef<MCPhysReg> getFastCCArgGPRs(const RISCVABI::ABI ABI) {
   // The GPRs used for passing arguments in the FastCC, X5 and X6 might be used
   // for save-restore libcall, so we don't use them.
@@ -18978,6 +19116,26 @@ static ArrayRef<MCPhysReg> getFastCCArgGPRs(const RISCVABI::ABI ABI) {
     return ArrayRef(FastCCEGPRs);
 
   return ArrayRef(FastCCIGPRs);
+}
+
+static ArrayRef<MCPhysReg> getFastCCArgGPRPairs(const RISCVABI::ABI ABI) {
+  static const MCPhysReg FastCCIGPRPairs[] = {
+      RISCV::X10_X11, RISCV::X12_X13, RISCV::X14_X15,
+      RISCV::X16_X17, RISCV::X28_X29, RISCV::X30_X31};
+  static const MCPhysReg FastCCEGPRPairs[] = {RISCV::X10_X11,
+                                             RISCV::X12_X13,
+                                             RISCV::X14_X15};
+
+  if (ABI == RISCVABI::ABI_ILP32E || ABI == RISCVABI::ABI_LP64E)
+    return ArrayRef(FastCCEGPRPairs);
+
+  return ArrayRef(FastCCIGPRPairs);
+}
+
+static bool isRV32XxldspPairVT(MVT VT, const RISCVSubtarget &Subtarget) {
+  return !Subtarget.is64Bit() && Subtarget.hasVendorXxldsp() &&
+         !Subtarget.hasVInstructions() &&
+         VT == MVT::v2i32;
 }
 
 // Pass a 2*XLEN argument that has been split into two XLEN values through
@@ -19035,6 +19193,7 @@ bool RISCV::CC_RISCV(const DataLayout &DL, RISCVABI::ABI ABI, unsigned ValNo,
   unsigned XLen = DL.getLargestLegalIntTypeSizeInBits();
   assert(XLen == 32 || XLen == 64);
   MVT XLenVT = XLen == 32 ? MVT::i32 : MVT::i64;
+  const RISCVSubtarget &Subtarget = TLI.getSubtarget();
 
   // Static chain parameter must not be passed in normal argument registers,
   // so we assign t2 for it as done in GCC's __builtin_call_with_static_chain
@@ -19097,6 +19256,24 @@ bool RISCV::CC_RISCV(const DataLayout &DL, RISCVABI::ABI ABI, unsigned ValNo,
 
   ArrayRef<MCPhysReg> ArgGPRs = RISCV::getArgGPRs(ABI);
 
+  if (isRV32XxldspPairVT(ValVT, Subtarget)) {
+    Register Reg;
+    if (IsRet)
+      Reg = State.AllocateReg(RISCV::X10_X11);
+    else
+      Reg = State.AllocateReg(getArgGPRPairs(ABI));
+    if (Reg) {
+      State.addLoc(CCValAssign::getReg(ValNo, ValVT, Reg, ValVT, LocInfo));
+      return false;
+    }
+    if (IsRet)
+      return true;
+    unsigned StackOffset = State.AllocateStack(8, Align(8));
+    State.addLoc(
+        CCValAssign::getMem(ValNo, ValVT, StackOffset, ValVT, LocInfo));
+    return false;
+  }
+
   // If this is a variadic argument, the RISC-V calling convention requires
   // that it is assigned an 'even' or 'aligned' register if it has 8-byte
   // alignment (RV32) or 16-byte alignment (RV64). An aligned register should
@@ -19155,8 +19332,11 @@ bool RISCV::CC_RISCV(const DataLayout &DL, RISCVABI::ABI ABI, unsigned ValNo,
 
   // Fixed-length vectors are located in the corresponding scalable-vector
   // container types.
-  if (ValVT.isFixedLengthVector())
+  if (ValVT.isFixedLengthVector()) {
+    if (!useRVVForFixedLengthVectorVT(ValVT, Subtarget))
+      return true;
     LocVT = TLI.getContainerForFixedLengthVector(LocVT);
+  }
 
   // Split arguments might be passed indirectly, so keep track of the pending
   // values. Split vectors are passed via a mix of registers and indirectly, so
@@ -19248,7 +19428,7 @@ bool RISCV::CC_RISCV(const DataLayout &DL, RISCVABI::ABI ABI, unsigned ValNo,
     PendingArgFlags.clear();
     return false;
   }
-
+  // assert((!UseGPRForF16_F32 || !UseGPRForF64 || !UseGPRForI64 || LocVT == XLenVT ||
   assert((!UseGPRForF16_F32 || !UseGPRForF64 || LocVT == XLenVT ||
           (TLI.getSubtarget().hasVInstructions() && ValVT.isVector())) &&
          "Expected an XLenVT or vector types at this stage");
@@ -19530,6 +19710,23 @@ bool RISCV::CC_RISCV_FastCC(const DataLayout &DL, RISCVABI::ABI ABI,
 
   const RISCVSubtarget &Subtarget = TLI.getSubtarget();
 
+  if (isRV32XxldspPairVT(ValVT, Subtarget)) {
+    Register Reg;
+    if (IsRet)
+      Reg = State.AllocateReg(RISCV::X10_X11);
+    else
+      Reg = State.AllocateReg(getFastCCArgGPRPairs(ABI));
+    if (Reg) {
+      State.addLoc(CCValAssign::getReg(ValNo, ValVT, Reg, ValVT, LocInfo));
+      return false;
+    }
+    if (IsRet)
+      return true;
+    unsigned Offset = State.AllocateStack(8, Align(8));
+    State.addLoc(CCValAssign::getMem(ValNo, ValVT, Offset, ValVT, LocInfo));
+    return false;
+  }
+
   if (LocVT == MVT::f16 &&
       (Subtarget.hasStdExtZfh() || Subtarget.hasStdExtZfhmin())) {
     static const MCPhysReg FPR16List[] = {
@@ -19602,8 +19799,11 @@ bool RISCV::CC_RISCV_FastCC(const DataLayout &DL, RISCVABI::ABI ABI,
     if (AllocatedVReg) {
       // Fixed-length vectors are located in the corresponding scalable-vector
       // container types.
-      if (ValVT.isFixedLengthVector())
+      if (ValVT.isFixedLengthVector()) {
+        if (!useRVVForFixedLengthVectorVT(ValVT, Subtarget))
+          return true;
         LocVT = TLI.getContainerForFixedLengthVector(LocVT);
+      }
       State.addLoc(
           CCValAssign::getReg(ValNo, ValVT, AllocatedVReg, LocVT, LocInfo));
     } else {
@@ -20423,6 +20623,8 @@ const char *RISCVTargetLowering::getTargetNodeName(unsigned Opcode) const {
   NODE_NAME_CASE(SplitGPRPair)
   NODE_NAME_CASE(BuildPairF64)
   NODE_NAME_CASE(SplitF64)
+  NODE_NAME_CASE(BuildPairI64)
+  NODE_NAME_CASE(SplitI64)
   NODE_NAME_CASE(TAIL)
   NODE_NAME_CASE(ADD_LO)
   NODE_NAME_CASE(HI)
@@ -20718,7 +20920,7 @@ RISCVTargetLowering::getRegForInlineAsmConstraint(const TargetRegisterInfo *TRI,
       if (VT == MVT::f64 && Subtarget.hasStdExtZdinx() && !Subtarget.is64Bit())
         return std::make_pair(0U, &RISCV::GPRPairRegClass);
       if (VT == MVT::i64 && Subtarget.hasVendorXxldsp() && !Subtarget.is64Bit()){
-        return std::make_pair(0U, &RISCV::GPRPairNoX0RegClass);
+        return std::make_pair(0U, &RISCV::GPR32PairNoX0RegClass);
       }
       return std::make_pair(0U, &RISCV::GPRNoX0RegClass);
     case 'f':
@@ -20730,6 +20932,9 @@ RISCVTargetLowering::getRegForInlineAsmConstraint(const TargetRegisterInfo *TRI,
         return std::make_pair(0U, &RISCV::FPR64RegClass);
       break;
     case 'R':
+      if (VT == MVT::i64 && Subtarget.hasVendorXxldsp() &&
+          !Subtarget.is64Bit())
+        return std::make_pair(0U, &RISCV::GPR32PairNoX0RegClass);
       if (((VT == MVT::i64 || VT == MVT::f64) && !Subtarget.is64Bit()) ||
           (VT == MVT::i128 && Subtarget.is64Bit()))
         return std::make_pair(0U, &RISCV::GPRPairNoX0RegClass);
@@ -21536,6 +21741,14 @@ bool RISCVTargetLowering::splitValueIntoRegisterParts(
   EVT ValueVT = Val.getValueType();
 
   MVT PairVT = Subtarget.is64Bit() ? MVT::i128 : MVT::i64;
+  if (!Subtarget.is64Bit() && Subtarget.hasVendorXxldsp() &&
+      ValueVT == MVT::i64 && NumParts == 1 &&
+      (PartVT == MVT::Untyped || PartVT == MVT::v2i32)) {
+    auto [Lo, Hi] = DAG.SplitScalar(Val, DL, MVT::i32, MVT::i32);
+    Parts[0] = DAG.getNode(RISCVISD::BuildPairI64, DL, PartVT, Lo, Hi);
+    return true;
+  }
+
   if ((ValueVT == PairVT ||
        (!Subtarget.is64Bit() && Subtarget.hasStdExtZdinx() &&
         ValueVT == MVT::f64)) &&
@@ -21607,6 +21820,16 @@ SDValue RISCVTargetLowering::joinRegisterPartsIntoValue(
   bool IsABIRegCopy = CC.has_value();
 
   MVT PairVT = Subtarget.is64Bit() ? MVT::i128 : MVT::i64;
+  if (!Subtarget.is64Bit() && Subtarget.hasVendorXxldsp() &&
+      ValueVT == MVT::i64 && NumParts == 1 &&
+      (PartVT == MVT::Untyped || PartVT == MVT::v2i32)) {
+    SDValue Val =
+        DAG.getNode(RISCVISD::SplitI64, DL, DAG.getVTList(MVT::i32, MVT::i32),
+                    Parts[0]);
+    return DAG.getNode(ISD::BUILD_PAIR, DL, MVT::i64, Val.getValue(0),
+                       Val.getValue(1));
+  }
+
   if ((ValueVT == PairVT ||
        (!Subtarget.is64Bit() && Subtarget.hasStdExtZdinx() &&
         ValueVT == MVT::f64)) &&
@@ -22134,6 +22357,17 @@ unsigned RISCVTargetLowering::getMinimumJumpTableEntries() const {
 // Handle single arg such as return value.
 template <typename Arg>
 void RVVArgDispatcher::constructArgInfos(ArrayRef<Arg> ArgList) {
+  auto getRVVRegisterVT = [this](MVT RegisterVT) -> std::optional<MVT> {
+    if (!RegisterVT.isVector())
+      return std::nullopt;
+    if (RegisterVT.isFixedLengthVector()) {
+      if (!useRVVForFixedLengthVectorVT(RegisterVT, TLI->getSubtarget()))
+        return std::nullopt;
+      RegisterVT = TLI->getContainerForFixedLengthVector(RegisterVT);
+    }
+    return RegisterVT;
+  };
+
   // This lambda determines whether an array of types are constructed by
   // homogeneous vector types.
   auto isHomogeneousScalableVectorType = [](ArrayRef<Arg> ArgList) {
@@ -22168,14 +22402,11 @@ void RVVArgDispatcher::constructArgInfos(ArrayRef<Arg> ArgList) {
     // Handle as normal vector type
     bool FirstVMaskAssigned = false;
     for (const auto &OutArg : ArgList) {
-      MVT RegisterVT = OutArg.VT;
-
-      // Skip non-RVV register type
-      if (!RegisterVT.isVector())
+      std::optional<MVT> MaybeRegisterVT = getRVVRegisterVT(OutArg.VT);
+      if (!MaybeRegisterVT)
         continue;
 
-      if (RegisterVT.isFixedLengthVector())
-        RegisterVT = TLI->getContainerForFixedLengthVector(RegisterVT);
+      MVT RegisterVT = *MaybeRegisterVT;
 
       if (!FirstVMaskAssigned && RegisterVT.getVectorElementType() == MVT::i1) {
         RVVArgInfos.push_back({1, RegisterVT, true});
@@ -22224,8 +22455,11 @@ void RVVArgDispatcher::constructArgInfos<Type *>(ArrayRef<Type *> TypeList) {
         if (!RegisterVT.isVector())
           continue;
 
-        if (RegisterVT.isFixedLengthVector())
+        if (RegisterVT.isFixedLengthVector()) {
+          if (!useRVVForFixedLengthVectorVT(RegisterVT, TLI->getSubtarget()))
+            continue;
           RegisterVT = TLI->getContainerForFixedLengthVector(RegisterVT);
+        }
 
         if (!FirstVMaskAssigned &&
             RegisterVT.getVectorElementType() == MVT::i1) {

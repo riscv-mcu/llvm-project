@@ -55,6 +55,8 @@ enum NodeType : unsigned {
   SplitGPRPair,
   BuildPairF64,
   SplitF64,
+  BuildPairI64,
+  SplitI64,
   TAIL,
 
   // Add the Lo 12 bits from an address. Selected to ADDI.

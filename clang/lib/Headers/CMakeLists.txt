@@ -121,6 +121,7 @@ set(riscv_files
   riscv_bitmanip.h
   riscv_crypto.h
   riscv_ntlh.h
+  rvp_intrinsic.h
   sifive_vector.h
   )
 

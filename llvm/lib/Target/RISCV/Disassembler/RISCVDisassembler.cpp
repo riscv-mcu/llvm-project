@@ -381,6 +381,10 @@ static DecodeStatus decodeCSSPushPopchk(MCInst &Inst, uint32_t Insn,
                                         uint64_t Address,
                                         const MCDisassembler *Decoder);
 
+static DecodeStatus DecodeGPR32PairRegisterClass(MCInst &Inst, uint32_t RegNo,
+                                                 uint64_t Address,
+                                                 const MCDisassembler *Decoder);
+
 #include "RISCVGenDisassemblerTables.inc"
 
 static DecodeStatus decodeRVCInstrRdRs1ImmZero(MCInst &Inst, uint32_t Insn,
@@ -497,6 +501,17 @@ static DecodeStatus decodeRegReg(MCInst &Inst, uint32_t Insn, uint64_t Address,
 static DecodeStatus decodeZcmpSpimm(MCInst &Inst, uint32_t Imm,
                                     uint64_t Address, const void *Decoder) {
   Inst.addOperand(MCOperand::createImm(Imm));
+  return MCDisassembler::Success;
+}
+
+static DecodeStatus DecodeGPR32PairRegisterClass(MCInst &Inst, uint32_t RegNo,
+                                                 uint64_t Address,
+                                                 const MCDisassembler *Decoder) {
+  if (RegNo >= 32 || RegNo & 1)
+    return MCDisassembler::Fail;
+
+  MCRegister Reg = RISCV::X0 + RegNo;
+  Inst.addOperand(MCOperand::createReg(Reg));
   return MCDisassembler::Success;
 }
 

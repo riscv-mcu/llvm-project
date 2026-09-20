@@ -221,6 +221,8 @@ class RISCVAsmParser : public MCTargetAsmParser {
   ParseStatus parseZcmpNegStackAdj(OperandVector &Operands) {
     return parseZcmpStackAdj(Operands, /*ExpectNegative*/ true);
   }
+  // template <bool IsRV64Inst> ParseStatus parseGPR32PairReg(OperandVector &Operands);
+  ParseStatus parseGPR32PairReg(OperandVector &Operands);
 
   bool parseOperand(OperandVector &Operands, StringRef Mnemonic);
 
@@ -485,6 +487,12 @@ public:
   bool isGPRPair() const {
     return Kind == KindTy::Register &&
            RISCVMCRegisterClasses[RISCV::GPRPairRegClassID].contains(
+               Reg.RegNum);
+  }
+
+  bool isGPR32Pair() const {
+    return Kind == KindTy::Register &&
+           RISCVMCRegisterClasses[RISCV::GPR32PairRegClassID].contains(
                Reg.RegNum);
   }
 
@@ -1373,6 +1381,19 @@ unsigned RISCVAsmParser::checkTargetMatchPredicate(MCInst &Inst) {
 
       MCRegister Reg = Op.getReg();
       if (RISCVMCRegisterClasses[RISCV::GPRPairRegClassID].contains(Reg))
+        continue;
+
+      // FIXME: We should form a paired register during parsing/matching.
+      if (((Reg.id() - RISCV::X0) & 1) != 0)
+        return Match_RequiresEvenGPRs;
+    }
+
+   if (MCID.operands()[I].RegClass == RISCV::GPR32PairRegClassID) {
+      const auto &Op = Inst.getOperand(I);
+      assert(Op.isReg());
+
+      MCRegister Reg = Op.getReg();
+      if (RISCVMCRegisterClasses[RISCV::GPR32PairRegClassID].contains(Reg))
         continue;
 
       // FIXME: We should form a paired register during parsing/matching.
@@ -2372,6 +2393,43 @@ ParseStatus RISCVAsmParser::parseGPRPair(OperandVector &Operands,
   unsigned Pair = RI->getMatchingSuperReg(
       RegNo, RISCV::sub_gpr_even,
       &RISCVMCRegisterClasses[RISCV::GPRPairRegClassID]);
+  if (!Pair)
+    return TokError("register pair is not available");
+  Operands.push_back(RISCVOperand::createReg(Pair, S, E));
+  return ParseStatus::Success;
+}
+
+ParseStatus RISCVAsmParser::parseGPR32PairReg(OperandVector &Operands) {
+  // GPR32Pair is an RV32-only register class.  Returning NoMatch on RV64 is
+  // important for mnemonics that have both RV32 pair and RV64 GPR forms.
+  if (isRV64())
+    return ParseStatus::NoMatch;
+
+  if (getLexer().isNot(AsmToken::Identifier))
+    return ParseStatus::NoMatch;
+
+  StringRef Name = getLexer().getTok().getIdentifier();
+  MCRegister RegNo = matchRegisterNameHelper(Name);
+
+  if (!RegNo)
+    return ParseStatus::NoMatch;
+
+  if (!RISCVMCRegisterClasses[RISCV::GPRRegClassID].contains(RegNo))
+    return ParseStatus::NoMatch;
+
+  if ((RegNo - RISCV::X0) & 1)
+    return TokError("register must be even");
+
+  SMLoc S = getLoc();
+  SMLoc E = SMLoc::getFromPointer(S.getPointer() + Name.size());
+  getLexer().Lex();
+
+  const MCRegisterInfo *RI = getContext().getRegisterInfo();
+  unsigned Pair = RI->getMatchingSuperReg(
+      RegNo, RISCV::sub_gpr_even,
+      &RISCVMCRegisterClasses[RISCV::GPR32PairRegClassID]);
+  if (!Pair)
+    return TokError("register pair is not available");
   Operands.push_back(RISCVOperand::createReg(Pair, S, E));
   return ParseStatus::Success;
 }
