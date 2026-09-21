@@ -629,9 +629,6 @@ def GPR32Pair : RISCVRegisterClass<[XxldspPairVT, XLenPairVT], 64, (add
     X18_X19, X20_X21, X22_X23, X24_X25, X26_X27,
     X0_Pair, X2_X3, X4_X5
 )>;
-def GPR32PairNoX0 :
-    RISCVRegisterClass<[XxldspPairVT, XLenPairVT], 64,
-                       (sub GPR32Pair, X0_Pair)>;
 // The register class is added for inline assembly for vector mask types.
 def VM : VReg<VMaskVTs, (add VR), 1>;
 
