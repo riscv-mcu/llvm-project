@@ -2151,7 +2151,7 @@ include "RISCVInstrInfoXwch.td"
 include "RISCVInstrInfoXxlcz.td"
 include "RISCVInstrInfoXxldsp.td"
 include "RISCVInstrInfoXxlvqmacc.td"
-include "RISCVInstrInfoEclic.td"
+include "RISCVInstrInfoXxl.td"
 include "RISCVInstrInfoXxlvfbf.td"
 
 //===----------------------------------------------------------------------===//
